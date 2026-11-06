@@ -2,7 +2,7 @@ import type {Metadata} from "next";
 import "./globals.css";
 export const metadata:Metadata={title:"MK Electricals Operations"};
 export default function RootLayout({children}:{children:React.ReactNode}){
- const links=[["Dashboard","/dashboard"],["Attendance","/attendance"],["Tasks","/tasks"],["Materials","/materials"],["Updates","/updates"],["Reports","/reports"],["Sites","/sites"],["Employee IDs","/employees"]];
+ const links=[["Dashboard","/dashboard"],["Attendance","/attendance"],["Tasks","/tasks"],["Materials","/materials"],["Updates","/updates"],["Reports","/reports"],["Employee IDs","/employees"]];
  return <html lang="en"><body>
  <header style={{background:"#10243a",color:"white",padding:"12px 16px",display:"flex",flexWrap:"wrap",alignItems:"center",gap:12}}>
   <strong style={{fontSize:17,whiteSpace:"nowrap"}}>MK Electricals</strong>
