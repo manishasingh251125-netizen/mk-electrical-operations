@@ -1,2 +1,2 @@
-import ModulePage from "@/components/module-page";
-export default function Page(){return <ModulePage section="tasks" />;}
+import OperationsWorkspace from "@/components/operations-workspace";
+export default function Page(){return <OperationsWorkspace kind="tasks" />;}
