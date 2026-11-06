@@ -1,2 +1,2 @@
-import ModulePage from "@/components/module-page";
-export default function Page(){return <ModulePage section="employees" />;}
+import EmployeeDirectory from "@/components/employee-directory";
+export default function Page(){return <EmployeeDirectory/>;}
