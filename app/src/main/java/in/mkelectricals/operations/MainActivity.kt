@@ -98,7 +98,6 @@ private fun OperationsApp(){
 }
 
 
-@Composable
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OwnerDashboard(session:ApiClient.Session){
