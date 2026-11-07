@@ -65,6 +65,7 @@ private fun OperationsApp(){
       OutlinedTextField(password,{password=it},label={Text("Password")},singleLine=true,modifier=Modifier.fillMaxWidth())
       Button(enabled=!busy&&username.isNotBlank()&&password.isNotBlank(),onClick={busy=true;message="Signing in…";scope.launch{try{val s=withContext(Dispatchers.IO){ApiClient.login(username,password)};session=s;message="Signed in securely.";loadSites(s)}catch(e:Exception){message=e.message?: "Sign in failed."}finally{busy=false}}},modifier=Modifier.fillMaxWidth().padding(top=12.dp)){Text(if(busy)"Please wait…" else "Sign in")}
      }else{
+      if(session?.role=="owner") { OwnerDashboard(session!!) } else {
       Text("Today's attendance",color=Deep,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
       Text(if(tracking)"● LIVE LOCATION ACTIVE" else "○ Not clocked in",color=if(tracking)Color(0xFF16834A)else Wine,fontWeight=FontWeight.Bold)
       if(sites.isNotEmpty()) { var expanded by remember{mutableStateOf(false)}; ExposedDropdownMenuBox(expanded=expanded,onExpandedChange={expanded=it}){OutlinedTextField(selected?.name?: "Choose site",{},readOnly=true,label={Text("Assigned site")},modifier=Modifier.menuAnchor().fillMaxWidth());ExposedDropdownMenu(expanded=expanded,onDismissRequest={expanded=false}){sites.forEach{site->DropdownMenuItem(text={Text(site.name)},onClick={selected=site;expanded=false})}}} }
@@ -85,10 +86,86 @@ private fun OperationsApp(){
       },modifier=Modifier.fillMaxWidth().padding(top=14.dp)){Text(if(busy)"Please wait…" else if(tracking)"Clock out" else "Clock in")}
       OutlinedButton(enabled=!tracking&&!busy,onClick={session=null;sites=emptyList();selected=null;attendanceId=null;password="";message="Signed out."},modifier=Modifier.fillMaxWidth()){Text("Sign out")}
      }
+     }
      Spacer(Modifier.height(10.dp));Text(message,color=Color(0xFF6D5961),style=MaterialTheme.typography.bodySmall)
     }
    }
    Spacer(Modifier.height(14.dp));Text("Secure • Site-aware • Built for field teams",color=Color(0xFFE9D8DE),style=MaterialTheme.typography.bodySmall)
   }
+ }
+}
+
+
+@Composable
+private fun OwnerDashboard(session:ApiClient.Session){
+ val scope= rememberCoroutineScope()
+ var employees by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
+ var sites by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
+ var locations by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
+ var worker by remember{mutableStateOf("")};var site by remember{mutableStateOf("")}
+ var name by remember{mutableStateOf("")};var address by remember{mutableStateOf("")}
+ var lat by remember{mutableStateOf("")};var lng by remember{mutableStateOf("")};var radius by remember{mutableStateOf("150")}
+ var task by remember{mutableStateOf("")};var details by remember{mutableStateOf("")}
+ var material by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var unit by remember{mutableStateOf("pcs")}
+ var status by remember{mutableStateOf("Loading owner dashboard…")};var busy by remember{mutableStateOf(false)}
+ fun refresh(){scope.launch{busy=true;try{
+  val result=withContext(Dispatchers.IO){Triple(ApiClient.ownerEmployees(session.accessToken),ApiClient.ownerSites(session.accessToken),ApiClient.ownerLiveLocations(session.accessToken))}
+  employees=(0 until result.first.length()).map{result.first.getJSONObject(it)}
+  sites=(0 until result.second.length()).map{result.second.getJSONObject(it)}
+  locations=(0 until result.third.length()).map{result.third.getJSONObject(it)}
+  if(worker.isBlank())worker=employees.firstOrNull{it.optString("role")=="worker"}?.optString("id").orEmpty()
+  if(site.isBlank())site=sites.firstOrNull()?.optString("id").orEmpty()
+  status="Dashboard updated"
+ }catch(e:Exception){status=e.message?: "Could not load owner data"}finally{busy=false}}}
+ LaunchedEffect(session.userId){refresh()}
+ Column(Modifier.fillMaxWidth().heightIn(max=620.dp).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
+  Text("OWNER DASHBOARD",color=Deep,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge)
+  Text("Employees: \${employees.size}  •  Sites: \${sites.size}  •  Live: \${locations.size}",color=Wine)
+  OutlinedButton(onClick={refresh()},enabled=!busy,modifier=Modifier.fillMaxWidth()){Text("Refresh dashboard")}
+  Text("LIVE EMPLOYEE LOCATIONS",color=Deep,fontWeight=FontWeight.Bold)
+  if(locations.isEmpty())Text("No live employee locations yet.",color=Wine)
+  locations.forEach{item->
+   val person=item.optJSONObject("profiles");val place=item.optJSONObject("sites")
+   Text("\${person?.optString("full_name")?:"Employee"} • \${place?.optString("name")?:"Site"}\n\${item.optDouble("latitude")}, \${item.optDouble("longitude")} • ±\${item.optInt("accuracy_m")} m",color=Deep,style=MaterialTheme.typography.bodySmall)
+  }
+  HorizontalDivider()
+  Text("CREATE SITE",color=Deep,fontWeight=FontWeight.Bold)
+  OutlinedTextField(name,{name=it},label={Text("Site name")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  OutlinedTextField(address,{address=it},label={Text("Address")},modifier=Modifier.fillMaxWidth())
+  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+   OutlinedTextField(lat,{lat=it},label={Text("Latitude")},modifier=Modifier.weight(1f))
+   OutlinedTextField(lng,{lng=it},label={Text("Longitude")},modifier=Modifier.weight(1f))
+  }
+  OutlinedTextField(radius,{radius=it},label={Text("Geofence radius in metres")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  Button(enabled=!busy&&name.isNotBlank()&&lat.toDoubleOrNull()!=null&&lng.toDoubleOrNull()!=null&&(radius.toIntOrNull()?:0) in 20..2000,onClick={
+   scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createSite(session.accessToken,name,address,lat.toDouble(),lng.toDouble(),radius.toInt())};name="";address="";status="Site created";refresh()}catch(e:Exception){status=e.message?:"Site creation failed"}finally{busy=false}}
+  },modifier=Modifier.fillMaxWidth()){Text("Create site")}
+  HorizontalDivider()
+  Text("ASSIGN EMPLOYEE TO SITE",color=Deep,fontWeight=FontWeight.Bold)
+  var workerOpen by remember{mutableStateOf(false)}
+  ExposedDropdownMenuBox(expanded=workerOpen,onExpandedChange={workerOpen=it}){
+   OutlinedTextField(employees.firstOrNull{it.optString("id")==worker}?.optString("full_name")?:"Choose employee",{},readOnly=true,label={Text("Employee")},modifier=Modifier.menuAnchor().fillMaxWidth())
+   ExposedDropdownMenu(expanded=workerOpen,onDismissRequest={workerOpen=false}){employees.filter{it.optString("role")=="worker"&&it.optBoolean("is_active")}.forEach{p->DropdownMenuItem(text={Text(p.optString("full_name"))},onClick={worker=p.optString("id");workerOpen=false})}}
+  }
+  var siteOpen by remember{mutableStateOf(false)}
+  ExposedDropdownMenuBox(expanded=siteOpen,onExpandedChange={siteOpen=it}){
+   OutlinedTextField(sites.firstOrNull{it.optString("id")==site}?.optString("name")?:"Choose site",{},readOnly=true,label={Text("Site")},modifier=Modifier.menuAnchor().fillMaxWidth())
+   ExposedDropdownMenu(expanded=siteOpen,onDismissRequest={siteOpen=false}){sites.forEach{p->DropdownMenuItem(text={Text(p.optString("name"))},onClick={site=p.optString("id");siteOpen=false})}}
+  }
+  Button(enabled=!busy&&worker.isNotBlank()&&site.isNotBlank(),onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.assignWorker(session.accessToken,worker,site)};status="Employee assigned"}catch(e:Exception){status=e.message?:"Assignment failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Assign employee")}
+  HorizontalDivider()
+  Text("ASSIGN DAILY TASK",color=Deep,fontWeight=FontWeight.Bold)
+  OutlinedTextField(task,{task=it},label={Text("Task title")},modifier=Modifier.fillMaxWidth())
+  OutlinedTextField(details,{details=it},label={Text("Task details")},modifier=Modifier.fillMaxWidth())
+  Button(enabled=!busy&&worker.isNotBlank()&&task.isNotBlank(),onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createTask(session.accessToken,worker,site.ifBlank{null},task,details)};task="";details="";status="Task assigned"}catch(e:Exception){status=e.message?:"Task assignment failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Assign task to selected employee")}
+  HorizontalDivider()
+  Text("ISSUE MATERIAL",color=Deep,fontWeight=FontWeight.Bold)
+  OutlinedTextField(material,{material=it},label={Text("Material name")},modifier=Modifier.fillMaxWidth())
+  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+   OutlinedTextField(quantity,{quantity=it},label={Text("Quantity")},modifier=Modifier.weight(1f))
+   OutlinedTextField(unit,{unit=it},label={Text("Unit")},modifier=Modifier.weight(1f))
+  }
+  Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"")};material="";quantity="";status="Material issue recorded"}catch(e:Exception){status=e.message?:"Material issue failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Record material issue")}
+  Text(status,color=Wine,style=MaterialTheme.typography.bodySmall)
  }
 }
