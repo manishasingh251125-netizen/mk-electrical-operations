@@ -35,6 +35,7 @@ class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme(colorScheme=darkColorScheme(primary=Wine,secondary=Gold,background=Deep)){OperationsApp()}}}
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OperationsApp(){
  val context=androidx.compose.ui.platform.LocalContext.current
