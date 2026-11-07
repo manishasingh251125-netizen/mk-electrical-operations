@@ -24,7 +24,8 @@ class LocationTrackingService : Service() {
     private var radius=150
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
         if(intent?.action=="STOP"){stopTracking();stopSelf();return START_NOT_STICKY}
-        val token=intent?.getStringExtra("token")?:return START_NOT_STICKY
+        var token=intent?.getStringExtra("token")?:return START_NOT_STICKY
+        var refreshToken=intent.getStringExtra("refreshToken")?:return START_NOT_STICKY
         val uid=intent.getStringExtra("uid")?:return START_NOT_STICKY
         val attendance=intent.getStringExtra("attendance")?:return START_NOT_STICKY
         val site=intent.getStringExtra("site")?:return START_NOT_STICKY
@@ -38,7 +39,7 @@ class LocationTrackingService : Service() {
                 val isOutside=distance[0]>radius
                 if(isOutside&&!outsideGeofence)showGeofenceAlert(distance[0].toInt())
                 outsideGeofence=isOutside
-                scope.launch { try { ApiClient.pushLocation(token,uid,attendance,site,l.latitude,l.longitude,l.accuracy) } catch (_:Exception) { } }
+                scope.launch { try { ApiClient.pushLocation(token,uid,attendance,site,l.latitude,l.longitude,l.accuracy) } catch (_:Exception) { try { val renewed=ApiClient.refreshAccessToken(refreshToken); token=renewed.accessToken; refreshToken=renewed.refreshToken; ApiClient.pushLocation(token,uid,attendance,site,l.latitude,l.longitude,l.accuracy) } catch (_:Exception) { } } }
             }}
             try{client.requestLocationUpdates(req,callback!!,mainLooper)}catch(_:SecurityException){stopSelf()}
         }
