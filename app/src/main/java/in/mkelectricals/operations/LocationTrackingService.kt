@@ -23,13 +23,22 @@ class LocationTrackingService : Service() {
     private var siteLng=0.0
     private var radius=150
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
-        if(intent?.action=="STOP"){stopTracking();stopSelf();return START_NOT_STICKY}
-        var token=intent?.getStringExtra("token")?:return START_NOT_STICKY
-        var refreshToken=intent.getStringExtra("refreshToken")?:return START_NOT_STICKY
-        val uid=intent.getStringExtra("uid")?:return START_NOT_STICKY
-        val attendance=intent.getStringExtra("attendance")?:return START_NOT_STICKY
-        val site=intent.getStringExtra("site")?:return START_NOT_STICKY
-        siteLat=intent.getDoubleExtra("siteLat",0.0);siteLng=intent.getDoubleExtra("siteLng",0.0);radius=intent.getIntExtra("radius",150);outsideGeofence=false
+        val saved=getSharedPreferences("active_shift_tracking",MODE_PRIVATE)
+        if(intent?.action=="STOP"){stopTracking();saved.edit().clear().apply();stopSelf();return START_NOT_STICKY}
+        val extras=intent?.extras
+        fun value(key:String)=extras?.getString(key)?:saved.getString(key,null)
+        var token=value("token")?:return START_NOT_STICKY
+        var refreshToken=value("refreshToken")?:return START_NOT_STICKY
+        val uid=value("uid")?:return START_NOT_STICKY
+        val attendance=value("attendance")?:return START_NOT_STICKY
+        val site=value("site")?:return START_NOT_STICKY
+        siteLat=extras?.getDouble("siteLat")?:saved.getString("siteLat",null)?.toDoubleOrNull()?:0.0
+        siteLng=extras?.getDouble("siteLng")?:saved.getString("siteLng",null)?.toDoubleOrNull()?:0.0
+        radius=extras?.getInt("radius")?:saved.getInt("radius",150)
+        saved.edit().putString("token",token).putString("refreshToken",refreshToken).putString("uid",uid)
+            .putString("attendance",attendance).putString("site",site).putString("siteLat",siteLat.toString())
+            .putString("siteLng",siteLng.toString()).putInt("radius",radius).apply()
+        outsideGeofence=false
         startForeground(41,notification())
         if(running.compareAndSet(false,true)){
             val req=LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY,15_000L).setMinUpdateIntervalMillis(10_000L).build()
