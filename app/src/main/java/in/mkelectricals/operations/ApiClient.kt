@@ -57,6 +57,23 @@ object ApiClient {
         val body=JSONObject().put("clock_out",java.time.Instant.now().toString()).put("clock_out_lat",lat).put("clock_out_lng",lng)
         request("/rest/v1/attendance?id=eq.$attendanceId",token,"PATCH",body.toString(),"return=minimal")
     }
+    fun ownerEmployees(token:String):JSONArray = JSONArray(request("/rest/v1/profiles?select=id,employee_code,full_name,username,designation,is_active,role&order=created_at.desc",token))
+    fun ownerSites(token:String):JSONArray = JSONArray(request("/rest/v1/sites?select=id,name,address,latitude,longitude,geofence_radius_m,is_active&order=created_at.desc",token))
+    fun ownerLiveLocations(token:String):JSONArray = JSONArray(request("/rest/v1/worker_live_locations?select=worker_id,site_id,latitude,longitude,accuracy_m,recorded_at,profiles(full_name,employee_code),sites(name)&order=recorded_at.desc",token))
+    fun createTask(token:String,workerId:String,siteId:String?,title:String,description:String){
+        val body=JSONObject().put("worker_id",workerId).put("title",title).put("description",description).put("work_date",java.time.LocalDate.now().toString()).put("status","planned")
+        if(siteId!=null)body.put("site_id",siteId)
+        request("/rest/v1/daily_tasks",token,"POST",body.toString(),"return=minimal")
+    }
+    fun issueMaterial(token:String,workerId:String,siteId:String?,name:String,qty:Double,unit:String,notes:String){
+        val body=JSONObject().put("worker_id",workerId).put("material_name",name).put("quantity",qty).put("unit",unit).put("transaction_type","issued").put("notes",notes)
+        if(siteId!=null)body.put("site_id",siteId)
+        request("/rest/v1/material_transactions",token,"POST",body.toString(),"return=minimal")
+    }
+    fun createSite(token:String,name:String,address:String,lat:Double,lng:Double,radius:Int){
+        val body=JSONObject().put("name",name).put("address",address).put("latitude",lat).put("longitude",lng).put("geofence_radius_m",radius).put("is_active",true)
+        request("/rest/v1/sites",token,"POST",body.toString(),"return=minimal")
+    }
     fun pushLocation(token:String,uid:String,attendanceId:String,siteId:String,lat:Double,lng:Double,accuracy:Float){
         val body=JSONObject().put("worker_id",uid).put("attendance_id",attendanceId).put("site_id",siteId)
             .put("latitude",lat).put("longitude",lng).put("accuracy_m",accuracy).put("recorded_at",java.time.Instant.now().toString()).put("updated_at",java.time.Instant.now().toString())
