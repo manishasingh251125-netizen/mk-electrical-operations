@@ -120,13 +120,13 @@ private fun OwnerDashboard(session:ApiClient.Session){
  LaunchedEffect(session.userId){refresh()}
  Column(Modifier.fillMaxWidth().heightIn(max=620.dp).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
   Text("OWNER DASHBOARD",color=Deep,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge)
-  Text("Employees: \${employees.size}  •  Sites: \${sites.size}  •  Live: \${locations.size}",color=Wine)
+  Text("Employees: ${employees.size}  •  Sites: ${sites.size}  •  Live: ${locations.size}",color=Wine)
   OutlinedButton(onClick={refresh()},enabled=!busy,modifier=Modifier.fillMaxWidth()){Text("Refresh dashboard")}
   Text("LIVE EMPLOYEE LOCATIONS",color=Deep,fontWeight=FontWeight.Bold)
   if(locations.isEmpty())Text("No live employee locations yet.",color=Wine)
   locations.forEach{item->
    val person=item.optJSONObject("profiles");val place=item.optJSONObject("sites")
-   Text("\${person?.optString("full_name")?:"Employee"} • \${place?.optString("name")?:"Site"}\n\${item.optDouble("latitude")}, \${item.optDouble("longitude")} • ±\${item.optInt("accuracy_m")} m",color=Deep,style=MaterialTheme.typography.bodySmall)
+   Text("${person?.optString("full_name")?:"Employee"} • ${place?.optString("name")?:"Site"}\n${item.optDouble("latitude")}, ${item.optDouble("longitude")} • ±${item.optInt("accuracy_m")} m",color=Deep,style=MaterialTheme.typography.bodySmall)
   }
   HorizontalDivider()
   Text("CREATE SITE",color=Deep,fontWeight=FontWeight.Bold)
