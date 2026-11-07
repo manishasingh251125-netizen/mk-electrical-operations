@@ -109,7 +109,7 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
  val scope= rememberCoroutineScope()
  var employees by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
  var sites by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
- var locations by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
+ var locations by remember{mutableStateOf(emptyList<org.json.JSONObject>())};var attendance by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
  var worker by remember{mutableStateOf("")};var site by remember{mutableStateOf("")}
  var name by remember{mutableStateOf("")};var address by remember{mutableStateOf("")}
  var lat by remember{mutableStateOf("")};var lng by remember{mutableStateOf("")};var radius by remember{mutableStateOf("150")}
@@ -117,10 +117,11 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
  var material by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var unit by remember{mutableStateOf("pcs")}
  var status by remember{mutableStateOf("Loading owner dashboard…")};var busy by remember{mutableStateOf(false)}
  fun refresh(){scope.launch{busy=true;try{
-  val result=withContext(Dispatchers.IO){Triple(ApiClient.ownerEmployees(session.accessToken),ApiClient.ownerSites(session.accessToken),ApiClient.ownerLiveLocations(session.accessToken))}
-  employees=(0 until result.first.length()).map{result.first.getJSONObject(it)}
-  sites=(0 until result.second.length()).map{result.second.getJSONObject(it)}
-  locations=(0 until result.third.length()).map{result.third.getJSONObject(it)}
+  val result=withContext(Dispatchers.IO){listOf(ApiClient.ownerEmployees(session.accessToken),ApiClient.ownerSites(session.accessToken),ApiClient.ownerLiveLocations(session.accessToken),ApiClient.ownerRecentAttendance(session.accessToken))}
+  employees=(0 until result[0].length()).map{result[0].getJSONObject(it)}
+  sites=(0 until result[1].length()).map{result[1].getJSONObject(it)}
+  locations=(0 until result[2].length()).map{result[2].getJSONObject(it)}
+  attendance=(0 until result[3].length()).map{result[3].getJSONObject(it)}
   if(worker.isBlank())worker=employees.firstOrNull{it.optString("role")=="worker"}?.optString("id").orEmpty()
   if(site.isBlank())site=sites.firstOrNull()?.optString("id").orEmpty()
   status="Dashboard updated"
@@ -136,6 +137,15 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
   locations.forEach{item->
    val person=item.optJSONObject("profiles");val place=item.optJSONObject("sites")
    Text("${person?.optString("full_name")?:"Employee"} • ${place?.optString("name")?:"Site"}\n${item.optDouble("latitude")}, ${item.optDouble("longitude")} • ±${item.optInt("accuracy_m")} m",color=Deep,style=MaterialTheme.typography.bodySmall)
+  }
+  HorizontalDivider()
+  Text("RECENT ATTENDANCE",color=Deep,fontWeight=FontWeight.Bold)
+  if(attendance.isEmpty())Text("No attendance records found.",color=Wine)
+  attendance.forEach{row->
+   val person=row.optJSONObject("profiles");val place=row.optJSONObject("sites")
+   val started=row.optString("clock_in").replace("T"," ").take(16)
+   val ended=row.optString("clock_out").let{if(it=="null"||it.isBlank())"Still clocked in" else it.replace("T"," ").take(16)}
+   Text("${person?.optString("full_name")?:"Employee"} • ${place?.optString("name")?:"Site"}\\n$started → $ended",color=Deep,style=MaterialTheme.typography.bodySmall)
   }
   HorizontalDivider()
   Text("CREATE SITE",color=Deep,fontWeight=FontWeight.Bold)
