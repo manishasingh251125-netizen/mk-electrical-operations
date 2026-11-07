@@ -1,5 +1,6 @@
 import type {Metadata} from "next";
 import "./globals.css";
+import SignOutButton from "@/components/sign-out-button";
 export const metadata:Metadata={title:"MK Electricals Operations"};
 export default function RootLayout({children}:{children:React.ReactNode}){
  const links=[["Dashboard","/dashboard"],["Attendance","/attendance"],["Tasks","/tasks"],["Materials","/materials"],["Updates","/updates"],["Reports","/reports"],["Employee IDs","/employees"],["Sites","/sites"]];
@@ -9,6 +10,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
   <nav style={{display:"flex",flexWrap:"wrap",gap:6}}>
    {links.map(([label,href])=><a key={href} href={href} style={{color:"white",textDecoration:"none",fontSize:13,padding:"7px 9px",borderRadius:7,background:"rgba(255,255,255,.1)"}}>{label}</a>)}
   </nav>
+  <div style={{marginLeft:"auto"}}><SignOutButton /></div>
  </header>{children}
  </body></html>
 }
