@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,7 +49,7 @@ private fun OperationsApp(){
  var sites by remember{mutableStateOf(emptyList<ApiClient.Site>())};var selected by remember{mutableStateOf<ApiClient.Site?>(null)}
  var attendanceId by remember{mutableStateOf<String?>(null)};var busy by remember{mutableStateOf(false)}
  var message by remember{mutableStateOf("Sign in with your company username and password")}
- var tracking by remember{mutableStateOf(false)}
+ var tracking by remember{mutableStateOf(false)};var showBackgroundPrompt by remember{mutableStateOf(false)}
  val locationClient= remember{LocationServices.getFusedLocationProviderClient(context)}
  val pulse= rememberInfiniteTransition(label="pulse");val rotation by pulse.animateFloat(0f,360f,infiniteRepeatable(tween(16000,easing=LinearEasing)),label="spin")
  fun loadSites(s:ApiClient.Session){scope.launch{try{val loaded=withContext(Dispatchers.IO){ApiClient.assignedSites(s.accessToken,s.userId)};sites=loaded;selected=loaded.firstOrNull();if(loaded.isEmpty())message="No active site assigned yet. Ask the owner to assign your site."}catch(e:Exception){message=e.message?: "Could not load assigned sites."}}}
@@ -55,6 +57,7 @@ private fun OperationsApp(){
    if(g[Manifest.permission.ACCESS_FINE_LOCATION]==true){message="Location permission granted. Tap Clock in again."}else message="Precise location permission is required for geofenced attendance."
  }
  Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Deep,Wine,Color(0xFF13090E))))){
+  if(showBackgroundPrompt){AlertDialog(onDismissRequest={showBackgroundPrompt=false},title={Text("Allow background location")},text={Text("To keep attendance GPS active when the screen is locked, set MK Electricals location access to Allow all the time in App permissions.")},confirmButton={TextButton(onClick={showBackgroundPrompt=false;context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Open app settings")}},dismissButton={TextButton(onClick={showBackgroundPrompt=false}){Text("Not now")}})}
   Column(Modifier.fillMaxSize().padding(20.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
    Box(Modifier.size(116.dp).graphicsLayer{rotationZ=rotation;cameraDistance=18*density}.shadow(25.dp,RoundedCornerShape(34.dp)).background(Brush.linearGradient(listOf(Gold,Wine,Color(0xFF9C5268))),RoundedCornerShape(34.dp)),contentAlignment=Alignment.Center){Text("MK",color=Color.White,style=MaterialTheme.typography.displayLarge,fontWeight=FontWeight.Black)}
    Spacer(Modifier.height(16.dp));Text("MK ELECTRICALS",color=Gold,fontWeight=FontWeight.Bold);Text(if(session==null)"Field Operations" else "Hello, ${session?.name}",color=Color.White,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold)
@@ -74,7 +77,9 @@ private fun OperationsApp(){
       Button(enabled=!busy&&selected!=null,onClick={
        if(!tracking){
         val fine=ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+        val background=Build.VERSION.SDK_INT<29 || ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_BACKGROUND_LOCATION)==PackageManager.PERMISSION_GRANTED
         if(!fine){val p=mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION);if(Build.VERSION.SDK_INT>=33)p.add(Manifest.permission.POST_NOTIFICATIONS);permission.launch(p)}
+        else if(!background){showBackgroundPrompt=true}
         else {busy=true;scope.launch{try{
          val loc=withContext(Dispatchers.IO){locationClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,null).get()}
          if(loc==null)throw Exception("Unable to get GPS location. Turn on Location and try again.")
