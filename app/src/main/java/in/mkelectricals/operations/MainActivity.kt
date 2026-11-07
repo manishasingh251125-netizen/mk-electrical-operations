@@ -70,7 +70,7 @@ private fun OperationsApp(){
       OutlinedTextField(password,{password=it},label={Text("Password")},singleLine=true,modifier=Modifier.fillMaxWidth())
       Button(enabled=!busy&&username.isNotBlank()&&password.isNotBlank(),onClick={busy=true;message="Signing in…";scope.launch{try{val s=withContext(Dispatchers.IO){ApiClient.login(username,password)};session=s;message="Signed in securely.";loadSites(s)}catch(e:Exception){message=e.message?: "Sign in failed."}finally{busy=false}}},modifier=Modifier.fillMaxWidth().padding(top=12.dp)){Text(if(busy)"Please wait…" else "Sign in")}
      }else{
-      if(session?.role=="owner") { OwnerDashboard(session!!) } else {
+      if(session?.role=="owner") { OwnerDashboard(session!!,onSignOut={session=null;sites=emptyList();selected=null;password="";message="Signed out."}) } else {
       Text("Today's attendance",color=Deep,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
       Text(if(tracking)"● LIVE LOCATION ACTIVE" else "○ Not clocked in",color=if(tracking)Color(0xFF16834A)else Wine,fontWeight=FontWeight.Bold)
       if(sites.isNotEmpty()) { var expanded by remember{mutableStateOf(false)}; ExposedDropdownMenuBox(expanded=expanded,onExpandedChange={expanded=it}){OutlinedTextField(selected?.name?: "Choose site",{},readOnly=true,label={Text("Assigned site")},modifier=Modifier.menuAnchor().fillMaxWidth());ExposedDropdownMenu(expanded=expanded,onDismissRequest={expanded=false}){sites.forEach{site->DropdownMenuItem(text={Text(site.name)},onClick={selected=site;expanded=false})}}} }
@@ -105,7 +105,7 @@ private fun OperationsApp(){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OwnerDashboard(session:ApiClient.Session){
+private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
  val scope= rememberCoroutineScope()
  var employees by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
  var sites by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
@@ -128,6 +128,7 @@ private fun OwnerDashboard(session:ApiClient.Session){
  LaunchedEffect(session.userId){refresh()}
  Column(Modifier.fillMaxWidth().heightIn(max=620.dp).verticalScroll(rememberScrollState()).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
   Text("OWNER DASHBOARD",color=Deep,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge)
+  OutlinedButton(onClick=onSignOut,modifier=Modifier.fillMaxWidth()){Text("Sign out")}
   Text("Employees: ${employees.size}  •  Sites: ${sites.size}  •  Live: ${locations.size}",color=Wine)
   OutlinedButton(onClick={refresh()},enabled=!busy,modifier=Modifier.fillMaxWidth()){Text("Refresh dashboard")}
   Text("LIVE EMPLOYEE LOCATIONS",color=Deep,fontWeight=FontWeight.Bold)
