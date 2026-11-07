@@ -11,6 +11,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -118,7 +120,7 @@ private fun OwnerDashboard(session:ApiClient.Session){
   status="Dashboard updated"
  }catch(e:Exception){status=e.message?: "Could not load owner data"}finally{busy=false}}}
  LaunchedEffect(session.userId){refresh()}
- Column(Modifier.fillMaxWidth().heightIn(max=620.dp).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
+ Column(Modifier.fillMaxWidth().heightIn(max=620.dp).verticalScroll(rememberScrollState()).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
   Text("OWNER DASHBOARD",color=Deep,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge)
   Text("Employees: ${employees.size}  •  Sites: ${sites.size}  •  Live: ${locations.size}",color=Wine)
   OutlinedButton(onClick={refresh()},enabled=!busy,modifier=Modifier.fillMaxWidth()){Text("Refresh dashboard")}
