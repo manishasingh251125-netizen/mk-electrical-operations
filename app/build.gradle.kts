@@ -13,7 +13,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         buildConfigField("String", "SUPABASE_URL", "\""+(System.getenv("SUPABASE_URL") ?: "https://ljijisvtevblzfnzpctm.supabase.co")+"\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\""+(System.getenv("SUPABASE_ANON_KEY") ?: "CONFIGURE_IN_GITHUB_SECRETS")+"\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\""+(System.getenv("SUPABASE_ANON_KEY") ?: "sb_publishable_9c3U7xh7A8HLN6RjzQN_JA_yAUNr6Da")+"\"")
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
