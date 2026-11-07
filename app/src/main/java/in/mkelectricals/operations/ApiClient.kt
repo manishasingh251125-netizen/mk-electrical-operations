@@ -78,6 +78,17 @@ object ApiClient {
         val body=JSONObject().put("name",name).put("address",address).put("latitude",lat).put("longitude",lng).put("geofence_radius_m",radius).put("is_active",true)
         request("/rest/v1/sites",token,"POST",body.toString(),"return=minimal")
     }
+    fun refreshAccessToken(refreshToken:String):Session {
+        val body=JSONObject().put("refresh_token",refreshToken)
+        val data=JSONObject(request("/auth/v1/token?grant_type=refresh_token",method="POST",body=body.toString()))
+        val token=data.getString("access_token")
+        val uid=data.getJSONObject("user").getString("id")
+        val rows=JSONArray(request("/rest/v1/profiles?select=id,full_name,role,is_active&id=eq.$uid&limit=1",token))
+        if(rows.length()==0) throw Exception("Employee profile not found.")
+        val p=rows.getJSONObject(0)
+        if(!p.optBoolean("is_active")) throw Exception("This account is inactive.")
+        return Session(token,data.optString("refresh_token",refreshToken),uid,p.optString("role"),p.optString("full_name"))
+    }
     fun pushLocation(token:String,uid:String,attendanceId:String,siteId:String,lat:Double,lng:Double,accuracy:Float){
         val body=JSONObject().put("worker_id",uid).put("attendance_id",attendanceId).put("site_id",siteId)
             .put("latitude",lat).put("longitude",lng).put("accuracy_m",accuracy).put("recorded_at",java.time.Instant.now().toString()).put("updated_at",java.time.Instant.now().toString())
