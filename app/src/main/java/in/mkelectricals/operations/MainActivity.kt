@@ -83,7 +83,7 @@ private fun OperationsApp(){
         }catch(e:Exception){message=e.message?: "Clock-in failed."}finally{busy=false}}}
        }else{busy=true;scope.launch{try{val s=session!!;val id=attendanceId!!;val loc=withContext(Dispatchers.IO){locationClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,null).get()};if(loc==null)throw Exception("GPS unavailable. Try again.");withContext(Dispatchers.IO){ApiClient.clockOut(s.accessToken,id,loc.latitude,loc.longitude)};context.startService(Intent(context,LocationTrackingService::class.java).setAction("STOP"));tracking=false;attendanceId=null;message="Clocked out. Location tracking stopped."}catch(e:Exception){message=e.message?: "Clock-out failed."}finally{busy=false}}}
       },modifier=Modifier.fillMaxWidth().padding(top=14.dp)){Text(if(busy)"Please wait…" else if(tracking)"Clock out" else "Clock in")}
-      OutlinedButton(onClick={context.startService(Intent(context,LocationTrackingService::class.java).setAction("STOP"));session=null;tracking=false;attendanceId=null},modifier=Modifier.fillMaxWidth()){Text("Sign out")}
+      OutlinedButton(enabled=!tracking&&!busy,onClick={session=null;sites=emptyList();selected=null;attendanceId=null;password="";message="Signed out."},modifier=Modifier.fillMaxWidth()){Text("Sign out")}
      }
      Spacer(Modifier.height(10.dp));Text(message,color=Color(0xFF6D5961),style=MaterialTheme.typography.bodySmall)
     }
