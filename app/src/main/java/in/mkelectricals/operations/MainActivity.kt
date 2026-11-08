@@ -165,8 +165,10 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
   attendance.forEach{row->
    val person=row.optJSONObject("profiles");val place=row.optJSONObject("sites")
    val started=row.optString("clock_in").replace("T"," ").take(16)
-   val ended=row.optString("clock_out").let{if(it=="null"||it.isBlank())"Still clocked in" else it.replace("T"," ").take(16)}
-   Text("${person?.optString("full_name")?:"Employee"} • ${place?.optString("name")?:"Site"}\\n$started → $ended",color=Deep,style=MaterialTheme.typography.bodySmall)
+   val rawEnd=row.optString("clock_out")
+   val ended=if(rawEnd=="null"||rawEnd.isBlank())"Still clocked in" else rawEnd.replace("T"," ").take(16)
+   val duration=runCatching{val start=java.time.Instant.parse(row.optString("clock_in"));val finish=if(rawEnd=="null"||rawEnd.isBlank())java.time.Instant.now() else java.time.Instant.parse(rawEnd);val minutes=java.time.Duration.between(start,finish).toMinutes().coerceAtLeast(0);"${minutes/60}h ${minutes%60}m"}.getOrDefault("—")
+   Text("${person?.optString("full_name")?:"Employee"} • ${place?.optString("name")?:"Site"}\\n$started → $ended • $duration",color=Deep,style=MaterialTheme.typography.bodySmall)
   }
   HorizontalDivider()
   Text("CREATE SITE",color=Deep,fontWeight=FontWeight.Bold)
