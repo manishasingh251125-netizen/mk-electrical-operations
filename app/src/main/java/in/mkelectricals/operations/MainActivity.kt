@@ -76,7 +76,9 @@ private fun OperationsApp(){
    }catch(e:Exception){authPrefs.edit().clear().apply();message=e.message?:"Please sign in again."}
   }
  val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){g->
-   if(g[Manifest.permission.ACCESS_FINE_LOCATION]==true){message="Location permission granted. Tap Clock in again."}else message="Precise location permission is required for geofenced attendance."
+   if(g[Manifest.permission.ACCESS_FINE_LOCATION]==true){
+    message=if(Build.VERSION.SDK_INT>=33&&g[Manifest.permission.POST_NOTIFICATIONS]==false)"Location granted. Enable notifications for shift and site-boundary alerts, then tap Clock in again." else "Permissions updated. Tap Clock in again."
+   }else message="Precise location permission is required for geofenced attendance."
  }
  Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Deep,Wine,Color(0xFF13090E))))){
   if(showBackgroundPrompt){AlertDialog(onDismissRequest={showBackgroundPrompt=false},title={Text("Allow background location")},text={Text("To keep attendance GPS active when the screen is locked, set MK Electricals location access to Allow all the time in App permissions.")},confirmButton={TextButton(onClick={showBackgroundPrompt=false;context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Open app settings")}},dismissButton={TextButton(onClick={showBackgroundPrompt=false}){Text("Not now")}})}
@@ -101,6 +103,7 @@ private fun OperationsApp(){
         val fine=ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
         val background=Build.VERSION.SDK_INT<29 || ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_BACKGROUND_LOCATION)==PackageManager.PERMISSION_GRANTED
         if(!fine){val p=mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION);if(Build.VERSION.SDK_INT>=33)p.add(Manifest.permission.POST_NOTIFICATIONS);permission.launch(p)}
+        else if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){permission.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))}
         else if(!background){showBackgroundPrompt=true}
         else {busy=true;scope.launch{try{
          val loc=withContext(Dispatchers.IO){locationClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,null).get()}
