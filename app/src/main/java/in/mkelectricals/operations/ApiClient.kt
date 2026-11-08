@@ -63,7 +63,7 @@ object ApiClient {
     }
     fun ownerEmployees(token:String):JSONArray = JSONArray(request("/rest/v1/profiles?select=id,employee_code,full_name,username,designation,is_active,role&order=created_at.desc",token))
     fun ownerSites(token:String):JSONArray = JSONArray(request("/rest/v1/sites?select=id,name,address,latitude,longitude,geofence_radius_m,is_active&order=created_at.desc",token))
-    fun ownerLiveLocations(token:String):JSONArray = JSONArray(request("/rest/v1/worker_live_locations?select=worker_id,site_id,latitude,longitude,accuracy_m,recorded_at,profiles(full_name,employee_code),sites(name)&order=recorded_at.desc",token))
+    fun ownerLiveLocations(token:String):JSONArray {\n        val cutoff=java.time.Instant.now().minusSeconds(90).toString()\n        return JSONArray(request("/rest/v1/worker_live_locations?select=worker_id,site_id,latitude,longitude,accuracy_m,recorded_at,profiles(full_name,employee_code),sites(name)&recorded_at=gte.$cutoff&order=recorded_at.desc",token))\n    }
     fun ownerRecentAttendance(token:String):JSONArray = JSONArray(request("/rest/v1/attendance?select=id,worker_id,site_id,clock_in,clock_out,profiles(full_name,employee_code),sites(name)&order=clock_in.desc&limit=30",token))
     fun assignWorker(token:String,workerId:String,siteId:String){
         val body=JSONObject().put("worker_id",workerId).put("site_id",siteId).put("is_active",true)
