@@ -152,6 +152,18 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
   Text("OWNER DASHBOARD",color=Deep,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge)
   OutlinedButton(onClick=onSignOut,modifier=Modifier.fillMaxWidth()){Text("Sign out")}
   Text("Employees: ${employees.size}  •  Sites: ${sites.size}  •  Live: ${locations.size}",color=Wine)
+  Text("EMPLOYEE DIRECTORY",color=Deep,fontWeight=FontWeight.Bold)
+  if(employees.isEmpty()) Text("No employees found.",color=Wine)
+  employees.filter{it.optString("role")=="worker"}.forEach{person->
+   val active=person.optBoolean("is_active")
+   Text("${person.optString("full_name","Employee")} • ${person.optString("employee_code","No code")}\n${person.optString("designation","Field staff")} • ${if(active)"Active" else "Inactive"}",color=Deep,style=MaterialTheme.typography.bodySmall)
+  }
+  HorizontalDivider()
+  Text("SITE DIRECTORY",color=Deep,fontWeight=FontWeight.Bold)
+  if(sites.isEmpty()) Text("No sites created yet.",color=Wine)
+  sites.forEach{place->
+   Text("${place.optString("name","Site")} • ${if(place.optBoolean("is_active"))"Active" else "Inactive"}\n${place.optString("address","Address not added")} • ${place.optInt("geofence_radius_m",150)} m geofence",color=Deep,style=MaterialTheme.typography.bodySmall)
+  }
   OutlinedButton(onClick={refresh()},enabled=!busy,modifier=Modifier.fillMaxWidth()){Text("Refresh dashboard")}
   Text("LIVE EMPLOYEE LOCATIONS",color=Deep,fontWeight=FontWeight.Bold)
   if(locations.isEmpty())Text("No live employee locations yet.",color=Wine)
