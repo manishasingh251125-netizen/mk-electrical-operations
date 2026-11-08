@@ -54,7 +54,26 @@ private fun OperationsApp(){
  val authPrefs=remember{context.getSharedPreferences("mk_auth_session",android.content.Context.MODE_PRIVATE)}
  val pulse= rememberInfiniteTransition(label="pulse");val rotation by pulse.animateFloat(0f,360f,infiniteRepeatable(tween(16000,easing=LinearEasing)),label="spin")
  fun loadSites(s:ApiClient.Session){scope.launch{try{val loaded=withContext(Dispatchers.IO){ApiClient.assignedSites(s.accessToken,s.userId)};sites=loaded;selected=loaded.firstOrNull();if(loaded.isEmpty())message="No active site assigned yet. Ask the owner to assign your site."}catch(e:Exception){message=e.message?: "Could not load assigned sites."}}}
- LaunchedEffect(Unit){val saved=authPrefs.getString("refresh_token",null);if(saved!=null){try{val restored=withContext(Dispatchers.IO){ApiClient.refreshAccessToken(saved)};session=restored;authPrefs.edit().putString("refresh_token",restored.refreshToken).apply();message="Session restored.";if(restored.role!="owner")loadSites(restored)}catch(_:Exception){authPrefs.edit().clear().apply();message="Please sign in again."}}}
+  LaunchedEffect(Unit){
+   val saved=authPrefs.getString("refresh_token",null)
+   if(saved!=null)try{
+    val restored=withContext(Dispatchers.IO){ApiClient.refreshAccessToken(saved)}
+    session=restored;authPrefs.edit().putString("refresh_token",restored.refreshToken).apply();message="Session restored."
+    if(restored.role!="owner"){
+     val assigned=withContext(Dispatchers.IO){ApiClient.assignedSites(restored.accessToken,restored.userId)}
+     sites=assigned;selected=assigned.firstOrNull()
+     val active=withContext(Dispatchers.IO){ApiClient.activeAttendance(restored.accessToken,restored.userId)}
+     if(active!=null){
+      val activeSite=assigned.firstOrNull{it.id==active.optString("site_id")}
+      if(activeSite!=null){
+       attendanceId=active.optString("id");tracking=true;selected=activeSite
+       val service=Intent(context,LocationTrackingService::class.java).putExtra("token",restored.accessToken).putExtra("refreshToken",restored.refreshToken).putExtra("uid",restored.userId).putExtra("attendance",attendanceId).putExtra("site",activeSite.id).putExtra("siteLat",activeSite.lat).putExtra("siteLng",activeSite.lng).putExtra("radius",activeSite.radius)
+       ContextCompat.startForegroundService(context,service);message="Active shift restored. Live GPS tracking is on."
+      }else message="An active attendance record exists, but its site is no longer assigned. Contact the owner."
+     }else if(assigned.isEmpty())message="No active site assigned yet. Ask the owner to assign your site."
+    }
+   }catch(e:Exception){authPrefs.edit().clear().apply();message=e.message?:"Please sign in again."}
+  }
  val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){g->
    if(g[Manifest.permission.ACCESS_FINE_LOCATION]==true){message="Location permission granted. Tap Clock in again."}else message="Precise location permission is required for geofenced attendance."
  }
