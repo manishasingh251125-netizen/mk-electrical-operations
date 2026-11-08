@@ -48,6 +48,10 @@ object ApiClient {
         }
         return out
     }
+    fun activeAttendance(token:String,uid:String):JSONObject? {
+        val rows=JSONArray(request("/rest/v1/attendance?select=id,site_id,clock_in&worker_id=eq.$uid&clock_out=is.null&order=clock_in.desc&limit=1",token))
+        return if(rows.length()>0)rows.getJSONObject(0) else null
+    }
     fun clockIn(token:String,uid:String,site:Site,lat:Double,lng:Double):String {
         val body=JSONObject().put("worker_id",uid).put("site_id",site.id).put("clock_in_lat",lat).put("clock_in_lng",lng)
         val rows=JSONArray(request("/rest/v1/attendance",token,"POST",body.toString(),"return=representation"))
