@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 private val Wine=Color(0xFF641B32); private val Deep=Color(0xFF35101F); private val Gold=Color(0xFFC49A58)
@@ -147,7 +148,7 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
   if(site.isBlank())site=sites.firstOrNull()?.optString("id").orEmpty()
   status="Dashboard updated"
  }catch(e:Exception){status=e.message?: "Could not load owner data"}finally{busy=false}}}
- LaunchedEffect(session.userId){refresh()}
+ LaunchedEffect(session.userId){ while(true){ refresh(); delay(30_000L) } }
  Column(Modifier.fillMaxWidth().heightIn(max=620.dp).verticalScroll(rememberScrollState()).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
   Text("OWNER DASHBOARD",color=Deep,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge)
   OutlinedButton(onClick=onSignOut,modifier=Modifier.fillMaxWidth()){Text("Sign out")}
