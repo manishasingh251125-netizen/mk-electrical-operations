@@ -51,8 +51,10 @@ private fun OperationsApp(){
  var message by remember{mutableStateOf("Sign in with your company username and password")}
  var tracking by remember{mutableStateOf(false)};var showBackgroundPrompt by remember{mutableStateOf(false)}
  val locationClient= remember{LocationServices.getFusedLocationProviderClient(context)}
+ val authPrefs=remember{context.getSharedPreferences("mk_auth_session",android.content.Context.MODE_PRIVATE)}
  val pulse= rememberInfiniteTransition(label="pulse");val rotation by pulse.animateFloat(0f,360f,infiniteRepeatable(tween(16000,easing=LinearEasing)),label="spin")
  fun loadSites(s:ApiClient.Session){scope.launch{try{val loaded=withContext(Dispatchers.IO){ApiClient.assignedSites(s.accessToken,s.userId)};sites=loaded;selected=loaded.firstOrNull();if(loaded.isEmpty())message="No active site assigned yet. Ask the owner to assign your site."}catch(e:Exception){message=e.message?: "Could not load assigned sites."}}}
+ LaunchedEffect(Unit){val saved=authPrefs.getString("refresh_token",null);if(saved!=null){try{val restored=withContext(Dispatchers.IO){ApiClient.refreshAccessToken(saved)};session=restored;authPrefs.edit().putString("refresh_token",restored.refreshToken).apply();message="Session restored.";if(restored.role!="owner")loadSites(restored)}catch(_:Exception){authPrefs.edit().clear().apply();message="Please sign in again."}}}
  val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){g->
    if(g[Manifest.permission.ACCESS_FINE_LOCATION]==true){message="Location permission granted. Tap Clock in again."}else message="Precise location permission is required for geofenced attendance."
  }
@@ -68,9 +70,9 @@ private fun OperationsApp(){
       Text("Employee sign in",color=Deep,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
       OutlinedTextField(username,{username=it},label={Text("Username")},singleLine=true,modifier=Modifier.fillMaxWidth())
       OutlinedTextField(password,{password=it},label={Text("Password")},singleLine=true,modifier=Modifier.fillMaxWidth())
-      Button(enabled=!busy&&username.isNotBlank()&&password.isNotBlank(),onClick={busy=true;message="Signing in…";scope.launch{try{val s=withContext(Dispatchers.IO){ApiClient.login(username,password)};session=s;message="Signed in securely.";loadSites(s)}catch(e:Exception){message=e.message?: "Sign in failed."}finally{busy=false}}},modifier=Modifier.fillMaxWidth().padding(top=12.dp)){Text(if(busy)"Please wait…" else "Sign in")}
+      Button(enabled=!busy&&username.isNotBlank()&&password.isNotBlank(),onClick={busy=true;message="Signing in…";scope.launch{try{val s=withContext(Dispatchers.IO){ApiClient.login(username,password)};session=s;authPrefs.edit().putString("refresh_token",s.refreshToken).apply();message="Signed in securely.";if(s.role!="owner")loadSites(s)}catch(e:Exception){message=e.message?: "Sign in failed."}finally{busy=false}}},modifier=Modifier.fillMaxWidth().padding(top=12.dp)){Text(if(busy)"Please wait…" else "Sign in")}
      }else{
-      if(session?.role=="owner") { OwnerDashboard(session!!,onSignOut={session=null;sites=emptyList();selected=null;password="";message="Signed out."}) } else {
+      if(session?.role=="owner") { OwnerDashboard(session!!,onSignOut={authPrefs.edit().clear().apply();session=null;sites=emptyList();selected=null;password="";message="Signed out."}) } else {
       Text("Today's attendance",color=Deep,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
       Text(if(tracking)"● LIVE LOCATION ACTIVE" else "○ Not clocked in",color=if(tracking)Color(0xFF16834A)else Wine,fontWeight=FontWeight.Bold)
       if(sites.isNotEmpty()) { var expanded by remember{mutableStateOf(false)}; ExposedDropdownMenuBox(expanded=expanded,onExpandedChange={expanded=it}){OutlinedTextField(selected?.name?: "Choose site",{},readOnly=true,label={Text("Assigned site")},modifier=Modifier.menuAnchor().fillMaxWidth());ExposedDropdownMenu(expanded=expanded,onDismissRequest={expanded=false}){sites.forEach{site->DropdownMenuItem(text={Text(site.name)},onClick={selected=site;expanded=false})}}} }
@@ -91,7 +93,7 @@ private fun OperationsApp(){
         }catch(e:Exception){message=e.message?: "Clock-in failed."}finally{busy=false}}}
        }else{busy=true;scope.launch{try{val s=session!!;val id=attendanceId!!;val loc=withContext(Dispatchers.IO){locationClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,null).get()};if(loc==null)throw Exception("GPS unavailable. Try again.");withContext(Dispatchers.IO){ApiClient.clockOut(s.accessToken,id,loc.latitude,loc.longitude)};context.startService(Intent(context,LocationTrackingService::class.java).setAction("STOP"));tracking=false;attendanceId=null;message="Clocked out. Location tracking stopped."}catch(e:Exception){message=e.message?: "Clock-out failed."}finally{busy=false}}}
       },modifier=Modifier.fillMaxWidth().padding(top=14.dp)){Text(if(busy)"Please wait…" else if(tracking)"Clock out" else "Clock in")}
-      OutlinedButton(enabled=!tracking&&!busy,onClick={session=null;sites=emptyList();selected=null;attendanceId=null;password="";message="Signed out."},modifier=Modifier.fillMaxWidth()){Text("Sign out")}
+      OutlinedButton(enabled=!tracking&&!busy,onClick={authPrefs.edit().clear().apply();session=null;sites=emptyList();selected=null;attendanceId=null;password="";message="Signed out."},modifier=Modifier.fillMaxWidth()){Text("Sign out")}
      }
      }
      Spacer(Modifier.height(10.dp));Text(message,color=Color(0xFF6D5961),style=MaterialTheme.typography.bodySmall)
