@@ -62,7 +62,7 @@ object ApiClient {
         if(lat!=null&&lng!=null)body.put("clock_out_lat",lat).put("clock_out_lng",lng)
         request("/rest/v1/attendance?id=eq.$attendanceId",token,"PATCH",body.toString(),"return=minimal")
     }
-    fun ownerEmployees(token:String):JSONArray = JSONArray(request("/rest/v1/profiles?select=id,employee_code,full_name,username,designation,is_active,role&order=created_at.desc",token))
+    fun ownerEmployees(token:String):JSONArray = JSONArray(request("/rest/v1/profiles?select=id,employee_code,full_name,username,designation,is_active,role,joining_date,photo_path,id_serial,verification_code&order=created_at.desc",token))
     fun ownerSites(token:String):JSONArray = JSONArray(request("/rest/v1/sites?select=id,name,address,latitude,longitude,geofence_radius_m,is_active&order=created_at.desc",token))
     fun ownerLiveLocations(token:String):JSONArray {
         val cutoff=java.time.Instant.now().minusSeconds(90).toString()
@@ -146,6 +146,12 @@ object ApiClient {
         if(condition.isNotBlank()) body.put("condition_in",condition.trim())
         if(notes.isNotBlank()) body.put("notes",notes.trim())
         request("/rest/v1/tool_custody?id=eq.$id&returned_at=is.null",token,"PATCH",body.toString(),"return=minimal")
+    }
+
+
+    fun employeeProfile(token:String,uid:String):JSONObject? {
+        val rows=JSONArray(request("/rest/v1/profiles?select=id,employee_code,full_name,username,role,is_active,designation,joining_date,photo_path,residential_address,id_serial,verification_code&id=eq.$uid&limit=1",token))
+        return if(rows.length()>0) rows.getJSONObject(0) else null
     }
 
 }
