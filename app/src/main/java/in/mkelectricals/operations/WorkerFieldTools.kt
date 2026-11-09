@@ -18,6 +18,7 @@ fun WorkerFieldTools(session: ApiClient.Session) {
     val scope = rememberCoroutineScope()
     var tasks by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
     var materials by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
+    var profile by remember { mutableStateOf<org.json.JSONObject?>(null) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Loading your tasks and issued materials…") }
     fun refresh() {
@@ -25,10 +26,11 @@ fun WorkerFieldTools(session: ApiClient.Session) {
             busy = true
             try {
                 val result = withContext(Dispatchers.IO) {
-                    Pair(ApiClient.workerDailyTasks(session.accessToken, session.userId), ApiClient.workerMaterials(session.accessToken, session.userId))
+                    Triple(ApiClient.workerDailyTasks(session.accessToken, session.userId), ApiClient.workerMaterials(session.accessToken, session.userId), ApiClient.employeeProfile(session.accessToken, session.userId))
                 }
                 tasks = (0 until result.first.length()).map { result.first.getJSONObject(it) }
                 materials = (0 until result.second.length()).map { result.second.getJSONObject(it) }
+                profile = result.third
                 message = "Your records are up to date."
             } catch (e: Exception) { message = e.message ?: "Could not load your records." }
             finally { busy = false }
@@ -36,6 +38,21 @@ fun WorkerFieldTools(session: ApiClient.Session) {
     }
     LaunchedEffect(session.userId) { refresh() }
     Column(Modifier.fillMaxWidth().heightIn(max = 430.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("MY DIGITAL STAFF ID", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
+        profile?.let { p ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(p.optString("full_name"), style = MaterialTheme.typography.titleLarge)
+                    Text("Employee code: ${p.optString("employee_code", "Pending")}")
+                    Text(p.optString("designation", "Field staff"))
+                    Text("ID serial: ${p.optString("id_serial", "Pending")}", style = MaterialTheme.typography.bodySmall)
+                    Text(if (p.optBoolean("is_active")) "ACTIVE EMPLOYEE" else "INACTIVE EMPLOYEE", color = if (p.optBoolean("is_active")) Color(0xFF16834A) else Color.Red)
+                    Text("Verification code: ${p.optString("verification_code", "Pending")}", style = MaterialTheme.typography.bodySmall)
+                    Text("This code can be checked against the company verification register.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        } ?: Text("Employee ID details are not available yet.", style = MaterialTheme.typography.bodySmall)
+        HorizontalDivider()
         HorizontalDivider()
         Text("MY DAILY TASKS", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
         if (tasks.isEmpty()) Text("No tasks assigned yet.", style = MaterialTheme.typography.bodySmall)
