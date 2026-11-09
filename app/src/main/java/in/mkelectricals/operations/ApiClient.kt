@@ -78,8 +78,9 @@ object ApiClient {
         if(siteId!=null)body.put("site_id",siteId)
         request("/rest/v1/daily_tasks",token,"POST",body.toString(),"return=minimal")
     }
-    fun issueMaterial(token:String,workerId:String,siteId:String?,name:String,qty:Double,unit:String,notes:String){
-        val body=JSONObject().put("worker_id",workerId).put("material_name",name).put("quantity",qty).put("unit",unit).put("transaction_type","issued").put("notes",notes)
+    fun issueMaterial(token:String,workerId:String,siteId:String?,name:String,qty:Double,unit:String,notes:String,transactionType:String="issued"){
+        require(transactionType in setOf("issued","returned"))
+        val body=JSONObject().put("worker_id",workerId).put("material_name",name).put("quantity",qty).put("unit",unit).put("transaction_type",transactionType).put("notes",notes)
         if(siteId!=null)body.put("site_id",siteId)
         request("/rest/v1/material_transactions",token,"POST",body.toString(),"return=minimal")
     }
