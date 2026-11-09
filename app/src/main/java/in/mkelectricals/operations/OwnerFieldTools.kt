@@ -81,7 +81,7 @@ fun OwnerFieldTools(session: ApiClient.Session, employees: JSONArray, sites: JSO
                     if (verified != null) {
                         Text(verified.optString("full_name"))
                         Text(verified.optString("designation", "Field staff"))
-                        Text("Register updated: \${verified.optString("updated_at").replace("T", " ").take(16)}", style = MaterialTheme.typography.bodySmall)
+                        Text("Register updated: ${verified.optString("updated_at").replace("T", " ").take(16)}", style = MaterialTheme.typography.bodySmall)
                     } else Text("Check the code and try again.", style = MaterialTheme.typography.bodySmall)
                 }
             }
