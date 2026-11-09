@@ -225,6 +225,7 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
    OutlinedTextField(unit,{unit=it},label={Text("Unit")},modifier=Modifier.weight(1f))
   }
   Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"")};material="";quantity="";status="Material issue recorded"}catch(e:Exception){status=e.message?:"Material issue failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Record material issue")}
+  OwnerFieldTools(session, org.json.JSONArray().apply { employees.forEach { put(it) } }, org.json.JSONArray().apply { sites.forEach { put(it) } })
   Text(status,color=Wine,style=MaterialTheme.typography.bodySmall)
  }
 }
