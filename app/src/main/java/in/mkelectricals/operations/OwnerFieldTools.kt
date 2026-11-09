@@ -36,6 +36,9 @@ fun OwnerFieldTools(session: ApiClient.Session, employees: JSONArray, sites: JSO
     var custodyRows by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("BOQ surveys and tool custody are saved to the company database.") }
+    var verificationCode by remember { mutableStateOf("") }
+    var verificationResult by remember { mutableStateOf<org.json.JSONObject?>(null) }
+    var verificationChecked by remember { mutableStateOf(false) }
 
     fun refresh() {
         scope.launch {
@@ -54,6 +57,35 @@ fun OwnerFieldTools(session: ApiClient.Session, employees: JSONArray, sites: JSO
     LaunchedEffect(session.userId, siteId) { refresh() }
 
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Text("EMPLOYEE ID VERIFICATION", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
+        Text("Enter the verification code shown on an employee’s digital staff ID.", style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(verificationCode, { verificationCode = it.trim(); verificationChecked = false; verificationResult = null }, label = { Text("Employee verification code") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Button(enabled = !busy && verificationCode.isNotBlank(), onClick = {
+            scope.launch {
+                busy = true
+                verificationChecked = false
+                verificationResult = null
+                try {
+                    verificationResult = withContext(Dispatchers.IO) { ApiClient.verifyEmployee(code = verificationCode) }
+                    verificationChecked = true
+                    message = if (verificationResult != null) "Employee ID verified against the company register." else "No matching employee ID was found."
+                } catch (e: Exception) { message = e.message ?: "Could not verify employee ID." }
+                finally { busy = false }
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Verify employee ID") }
+        if (verificationChecked) {
+            val verified = verificationResult
+            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (verified != null && verified.optBoolean("is_active")) Color(0xFFE5F4E9) else Color(0xFFFBE8E8))) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(if (verified == null) "ID NOT FOUND" else if (verified.optBoolean("is_active")) "VALID • ACTIVE EMPLOYEE" else "VALID RECORD • INACTIVE EMPLOYEE", color = if (verified != null && verified.optBoolean("is_active")) Color(0xFF176B38) else Color(0xFF9B2525), style = MaterialTheme.typography.titleSmall)
+                    if (verified != null) {
+                        Text(verified.optString("full_name"))
+                        Text(verified.optString("designation", "Field staff"))
+                        Text("Register updated: \${verified.optString("updated_at").replace("T", " ").take(16)}", style = MaterialTheme.typography.bodySmall)
+                    } else Text("Check the code and try again.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
         HorizontalDivider()
         Text("BOQ / ROOM SURVEY", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
         ExposedDropdownMenuBox(expanded = siteMenu, onExpandedChange = { siteMenu = it }) {
