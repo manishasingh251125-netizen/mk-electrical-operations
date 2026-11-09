@@ -19,6 +19,7 @@ fun WorkerFieldTools(session: ApiClient.Session) {
     val scope = rememberCoroutineScope()
     var tasks by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
     var materials by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
+    var tools by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
     var profile by remember { mutableStateOf<org.json.JSONObject?>(null) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Loading your tasks and issued materials…") }
@@ -27,11 +28,19 @@ fun WorkerFieldTools(session: ApiClient.Session) {
             busy = true
             try {
                 val result = withContext(Dispatchers.IO) {
-                    Triple(ApiClient.workerDailyTasks(session.accessToken, session.userId), ApiClient.workerMaterials(session.accessToken, session.userId), ApiClient.employeeProfile(session.accessToken, session.userId))
+                    val taskRows = ApiClient.workerDailyTasks(session.accessToken, session.userId)
+                    val materialRows = ApiClient.workerMaterials(session.accessToken, session.userId)
+                    val toolRows = ApiClient.workerToolCustody(session.accessToken, session.userId)
+                    val profileRow = ApiClient.employeeProfile(session.accessToken, session.userId)
+                    arrayOf(taskRows, materialRows, toolRows, profileRow)
                 }
-                tasks = (0 until result.first.length()).map { result.first.getJSONObject(it) }
-                materials = (0 until result.second.length()).map { result.second.getJSONObject(it) }
-                profile = result.third
+                val taskRows = result[0] as JSONArray
+                val materialRows = result[1] as JSONArray
+                val toolRows = result[2] as JSONArray
+                tasks = (0 until taskRows.length()).map { taskRows.getJSONObject(it) }
+                materials = (0 until materialRows.length()).map { materialRows.getJSONObject(it) }
+                tools = (0 until toolRows.length()).map { toolRows.getJSONObject(it) }
+                profile = result[3] as org.json.JSONObject?
                 message = "Your records are up to date."
             } catch (e: Exception) { message = e.message ?: "Could not load your records." }
             finally { busy = false }
@@ -97,7 +106,26 @@ fun WorkerFieldTools(session: ApiClient.Session) {
                 }
             }
         }
-        OutlinedButton(onClick = { refresh() }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh tasks & materials") }
+        HorizontalDivider()
+        Text("MY TOOL CUSTODY", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
+        if (tools.isEmpty()) Text("No tools have been issued to you.", style = MaterialTheme.typography.bodySmall)
+        tools.take(25).forEach { tool ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(tool.optString("tool_name"), style = MaterialTheme.typography.titleSmall)
+                    val serial = tool.optString("serial_number")
+                    if (serial.isNotBlank() && serial != "null") Text("Serial: $serial", style = MaterialTheme.typography.bodySmall)
+                    Text("Site: " + (tool.optJSONObject("sites")?.optString("name") ?: "Not specified"), style = MaterialTheme.typography.bodySmall)
+                    val returned = tool.optString("returned_at")
+                    Text("Issued: " + tool.optString("issued_at").take(10) + " • " + if (returned == "null" || returned.isBlank()) "With you" else "Returned: " + returned.take(10), style = MaterialTheme.typography.bodySmall)
+                    val condition = tool.optString("condition_out")
+                    if (condition.isNotBlank() && condition != "null") Text("Condition at issue: $condition", style = MaterialTheme.typography.bodySmall)
+                    val returnedCondition = tool.optString("condition_in")
+                    if (returnedCondition.isNotBlank() && returnedCondition != "null") Text("Return condition: $returnedCondition", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        OutlinedButton(onClick = { refresh() }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh tasks, materials & tools") }
         Text(message, color = Color(0xFF641B32), style = MaterialTheme.typography.bodySmall)
     }
 }
