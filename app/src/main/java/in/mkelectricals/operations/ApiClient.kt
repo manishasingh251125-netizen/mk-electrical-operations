@@ -116,6 +116,9 @@ object ApiClient {
     fun workerMaterials(token:String,uid:String):JSONArray =
         JSONArray(request("/rest/v1/material_transactions?select=id,site_id,material_name,quantity,unit,transaction_type,transaction_date,notes,sites(name)&worker_id=eq.$uid&order=transaction_date.desc",token))
 
+    fun workerToolCustody(token:String,uid:String):JSONArray =
+        JSONArray(request("/rest/v1/tool_custody?select=id,tool_name,serial_number,site_id,issued_at,returned_at,condition_out,condition_in,notes,sites(name)&assigned_to=eq.$uid&order=issued_at.desc",token))
+
     fun ownerRoomSurvey(token:String,siteId:String?=null):JSONArray {
         val filter=if(siteId.isNullOrBlank()) "" else "&site_id=eq.$siteId"
         return JSONArray(request("/rest/v1/room_survey_entries?select=id,site_id,room_name,item_description,quantity,unit,notes,created_by,created_at,sites(name),profiles!room_survey_entries_created_by_fkey(full_name)&order=created_at.desc$filter",token))
