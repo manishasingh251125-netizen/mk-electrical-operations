@@ -84,11 +84,8 @@ private fun OperationsApp(){
  }
  Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Deep,Wine,Color(0xFF13090E))))){
   if(showBackgroundPrompt){AlertDialog(onDismissRequest={showBackgroundPrompt=false},title={Text("Allow background location")},text={Text("To keep attendance GPS active when the screen is locked, set MK Electricals location access to Allow all the time in App permissions.")},confirmButton={TextButton(onClick={showBackgroundPrompt=false;context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Open app settings")}},dismissButton={TextButton(onClick={showBackgroundPrompt=false}){Text("Not now")}})}
-  Column(Modifier.fillMaxSize().padding(horizontal=24.dp, vertical=22.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
-   Spacer(Modifier.weight(0.45f))
-   MkBrandLogo()
-
-   Spacer(Modifier.height(44.dp))
+  Column(Modifier.fillMaxSize().padding(horizontal=16.dp, vertical=12.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Top){
+   if(session==null){ Spacer(Modifier.height(34.dp)); MkBrandLogo(); Spacer(Modifier.height(36.dp)) }
    if(session==null){
     Column(Modifier.fillMaxWidth().background(Color(0xFF21070F).copy(alpha=0.62f),RoundedCornerShape(28.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
      Text("Sign In",color=Color.White,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold)
@@ -119,9 +116,7 @@ private fun OperationsApp(){
      }
     }
    }
-   Spacer(Modifier.height(12.dp));Text(message,color=Color(0xFFEAD9DE),style=MaterialTheme.typography.bodySmall)
-   Spacer(Modifier.weight(0.55f))
-   Text("SECURE  •  SITE-AWARE  •  BUILT FOR FIELD TEAMS",color=Color(0xFFE9D8DE),style=MaterialTheme.typography.labelSmall)
+   if(session==null){ Spacer(Modifier.height(12.dp));Text(message,color=Color(0xFFEAD9DE),style=MaterialTheme.typography.bodySmall);Spacer(Modifier.weight(1f));Text("SECURE  •  SITE-AWARE  •  BUILT FOR FIELD TEAMS",color=Color(0xFFE9D8DE),style=MaterialTheme.typography.labelSmall) }
   }
  }
 }
