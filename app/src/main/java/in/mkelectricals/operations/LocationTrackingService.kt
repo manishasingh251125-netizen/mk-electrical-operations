@@ -48,7 +48,29 @@ class LocationTrackingService : Service() {
                 val isOutside=distance[0]>radius
                 if(isOutside&&!outsideGeofence)showGeofenceAlert(distance[0].toInt())
                 outsideGeofence=isOutside
-                scope.launch { try { ApiClient.pushLocation(token,uid,attendance,site,l.latitude,l.longitude,l.accuracy) } catch (_:Exception) { try { val renewed=ApiClient.refreshAccessToken(refreshToken); token=renewed.accessToken; refreshToken=renewed.refreshToken; getSharedPreferences("active_shift_tracking",MODE_PRIVATE).edit().putString("token",token).putString("refreshToken",refreshToken).apply(); ApiClient.pushLocation(token,uid,attendance,site,l.latitude,l.longitude,l.accuracy) } catch (_:Exception) { } } }
+                val prefs=getSharedPreferences("active_shift_tracking",MODE_PRIVATE)
+                prefs.edit()
+                    .putString("lastLat",l.latitude.toString())
+                    .putString("lastLng",l.longitude.toString())
+                    .putString("lastAccuracy",l.accuracy.toString())
+                    .putString("lastDistance",distance[0].toString())
+                    .putBoolean("outsideGeofence",isOutside)
+                    .putLong("lastPingTime",System.currentTimeMillis())
+                    .putInt("pingCount",prefs.getInt("pingCount",0)+1)
+                    .apply()
+                scope.launch {
+                    try {
+                        ApiClient.pushLocation(token,uid,attendance,site,l.latitude,l.longitude,l.accuracy)
+                    } catch (_:Exception) {
+                        try {
+                            val renewed=ApiClient.refreshAccessToken(refreshToken)
+                            token=renewed.accessToken
+                            refreshToken=renewed.refreshToken
+                            prefs.edit().putString("token",token).putString("refreshToken",refreshToken).apply()
+                            ApiClient.pushLocation(token,uid,attendance,site,l.latitude,l.longitude,l.accuracy)
+                        } catch (_:Exception) { }
+                    }
+                }
             }}
             try{client.requestLocationUpdates(req,callback!!,mainLooper)}catch(_:SecurityException){stopSelf()}
         }
