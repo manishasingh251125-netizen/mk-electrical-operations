@@ -141,7 +141,7 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
  var name by remember{mutableStateOf("")};var address by remember{mutableStateOf("")}
  var lat by remember{mutableStateOf("")};var lng by remember{mutableStateOf("")};var radius by remember{mutableStateOf("150")}
  var task by remember{mutableStateOf("")};var details by remember{mutableStateOf("")}
- var material by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var unit by remember{mutableStateOf("pcs")}
+ var material by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var unit by remember{mutableStateOf("pcs")};var materialAction by remember{mutableStateOf("issued")}
  var status by remember{mutableStateOf("Loading owner dashboard…")};var busy by remember{mutableStateOf(false)}
  fun refresh(){scope.launch{busy=true;try{
   val result=withContext(Dispatchers.IO){listOf(ApiClient.ownerEmployees(session.accessToken),ApiClient.ownerSites(session.accessToken),ApiClient.ownerLiveLocations(session.accessToken),ApiClient.ownerRecentAttendance(session.accessToken))}
@@ -219,13 +219,17 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
   OutlinedTextField(details,{details=it},label={Text("Task details")},modifier=Modifier.fillMaxWidth())
   Button(enabled=!busy&&worker.isNotBlank()&&task.isNotBlank(),onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createTask(session.accessToken,worker,site.ifBlank{null},task,details)};task="";details="";status="Task assigned"}catch(e:Exception){status=e.message?:"Task assignment failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Assign task to selected employee")}
   HorizontalDivider()
-  Text("ISSUE MATERIAL",color=Deep,fontWeight=FontWeight.Bold)
+  Text("MATERIAL ISSUE / RETURN",color=Deep,fontWeight=FontWeight.Bold)
+  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+   FilterChip(selected=materialAction=="issued",onClick={materialAction="issued"},label={Text("Issue")})
+   FilterChip(selected=materialAction=="returned",onClick={materialAction="returned"},label={Text("Return")})
+  }
   OutlinedTextField(material,{material=it},label={Text("Material name")},modifier=Modifier.fillMaxWidth())
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
    OutlinedTextField(quantity,{quantity=it},label={Text("Quantity")},modifier=Modifier.weight(1f))
    OutlinedTextField(unit,{unit=it},label={Text("Unit")},modifier=Modifier.weight(1f))
   }
-  Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"")};material="";quantity="";status="Material issue recorded"}catch(e:Exception){status=e.message?:"Material issue failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Record material issue")}
+  Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"",materialAction)};material="";quantity="";status=if(materialAction=="issued")"Material issue recorded" else "Material return recorded"}catch(e:Exception){status=e.message?:"Material issue failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Record material issue")}
   OwnerFieldTools(session, org.json.JSONArray().apply { employees.forEach { put(it) } }, org.json.JSONArray().apply { sites.forEach { put(it) } })
   Text(status,color=Wine,style=MaterialTheme.typography.bodySmall)
  }
