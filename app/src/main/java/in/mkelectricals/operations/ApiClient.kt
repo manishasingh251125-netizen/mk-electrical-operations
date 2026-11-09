@@ -74,7 +74,7 @@ object ApiClient {
         request("/rest/v1/site_assignments?on_conflict=site_id,worker_id",token,"POST",body.toString(),"resolution=merge-duplicates,return=minimal")
     }
     fun createTask(token:String,workerId:String,siteId:String?,title:String,description:String){
-        val body=JSONObject().put("worker_id",workerId).put("title",title).put("description",description).put("work_date",java.time.LocalDate.now().toString()).put("status","pending")
+        val body=JSONObject().put("worker_id",workerId).put("title",title).put("description",description).put("work_date",java.time.LocalDate.now().toString()).put("status","planned")
         if(siteId!=null)body.put("site_id",siteId)
         request("/rest/v1/daily_tasks",token,"POST",body.toString(),"return=minimal")
     }
