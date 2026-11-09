@@ -154,4 +154,11 @@ object ApiClient {
         return if(rows.length()>0) rows.getJSONObject(0) else null
     }
 
+
+    fun verifyEmployee(token:String?=null,code:String):JSONObject? {
+        val safe=java.net.URLEncoder.encode(code.trim(),"UTF-8")
+        val rows=JSONArray(request("/rest/v1/employee_verifications?select=verification_code,employee_id,full_name,designation,is_active,updated_at&verification_code=eq.$safe&limit=1",token))
+        return if(rows.length()>0) rows.getJSONObject(0) else null
+    }
+
 }
