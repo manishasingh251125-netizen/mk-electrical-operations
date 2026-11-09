@@ -130,108 +130,94 @@ private fun OperationsApp(){
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
- val scope= rememberCoroutineScope()
+ val scope=rememberCoroutineScope()
  var employees by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
  var sites by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
- var locations by remember{mutableStateOf(emptyList<org.json.JSONObject>())};var attendance by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
+ var locations by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
+ var attendance by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
  var worker by remember{mutableStateOf("")};var site by remember{mutableStateOf("")}
- var name by remember{mutableStateOf("")};var address by remember{mutableStateOf("")}
- var lat by remember{mutableStateOf("")};var lng by remember{mutableStateOf("")};var radius by remember{mutableStateOf("150")}
- var task by remember{mutableStateOf("")};var details by remember{mutableStateOf("")}
- var material by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var unit by remember{mutableStateOf("pcs")};var materialAction by remember{mutableStateOf("issued")}
- var status by remember{mutableStateOf("Loading owner dashboard…")};var busy by remember{mutableStateOf(false)}
- fun refresh(){scope.launch{busy=true;try{
-  val result=withContext(Dispatchers.IO){listOf(ApiClient.ownerEmployees(session.accessToken),ApiClient.ownerSites(session.accessToken),ApiClient.ownerLiveLocations(session.accessToken),ApiClient.ownerRecentAttendance(session.accessToken))}
-  employees=(0 until result[0].length()).map{result[0].getJSONObject(it)}
-  sites=(0 until result[1].length()).map{result[1].getJSONObject(it)}
-  locations=(0 until result[2].length()).map{result[2].getJSONObject(it)}
-  attendance=(0 until result[3].length()).map{result[3].getJSONObject(it)}
-  if(worker.isBlank())worker=employees.firstOrNull{it.optString("role")=="worker"}?.optString("id").orEmpty()
-  if(site.isBlank())site=sites.firstOrNull()?.optString("id").orEmpty()
-  status="Dashboard updated"
- }catch(e:Exception){status=e.message?: "Could not load owner data"}finally{busy=false}}}
- LaunchedEffect(session.userId){ while(true){ refresh(); delay(30_000L) } }
- Column(Modifier.fillMaxWidth().heightIn(max=620.dp).verticalScroll(rememberScrollState()).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
-  Text("OWNER DASHBOARD",color=Deep,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge)
-  OutlinedButton(onClick=onSignOut,modifier=Modifier.fillMaxWidth()){Text("Sign out")}
-  Text("Employees: ${employees.size}  •  Sites: ${sites.size}  •  Live: ${locations.size}",color=Wine)
-  Text("EMPLOYEE DIRECTORY",color=Deep,fontWeight=FontWeight.Bold)
-  if(employees.isEmpty()) Text("No employees found.",color=Wine)
-  employees.filter{it.optString("role")=="worker"}.forEach{person->
-   val active=person.optBoolean("is_active")
-   Text("${person.optString("full_name","Employee")} • ${person.optString("employee_code","No code")}\n${person.optString("designation","Field staff")} • ${if(active)"Active" else "Inactive"}",color=Deep,style=MaterialTheme.typography.bodySmall)
+ var siteName by remember{mutableStateOf("")};var address by remember{mutableStateOf("")};var lat by remember{mutableStateOf("")};var lng by remember{mutableStateOf("")};var radius by remember{mutableStateOf("150")}
+ var taskTitle by remember{mutableStateOf("")};var taskDetails by remember{mutableStateOf("")}
+ var material by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var unit by remember{mutableStateOf("pcs")};var action by remember{mutableStateOf("issued")}
+ var page by remember{mutableStateOf("Home")};var status by remember{mutableStateOf("Loading company data…")};var busy by remember{mutableStateOf(false)}
+ fun refresh(){scope.launch{busy=true;try{val r=withContext(Dispatchers.IO){listOf(ApiClient.ownerEmployees(session.accessToken),ApiClient.ownerSites(session.accessToken),ApiClient.ownerLiveLocations(session.accessToken),ApiClient.ownerRecentAttendance(session.accessToken))};employees=(0 until r[0].length()).map{r[0].getJSONObject(it)};sites=(0 until r[1].length()).map{r[1].getJSONObject(it)};locations=(0 until r[2].length()).map{r[2].getJSONObject(it)};attendance=(0 until r[3].length()).map{r[3].getJSONObject(it)};if(worker.isBlank())worker=employees.firstOrNull{it.optString("role")=="worker"}?.optString("id").orEmpty();if(site.isBlank())site=sites.firstOrNull()?.optString("id").orEmpty();status="Updated just now"}catch(e:Exception){status=e.message?:"Could not load company data"}finally{busy=false}}}
+ LaunchedEffect(session.userId){refresh();while(true){delay(30000L);refresh()}}
+ val workers=employees.filter{it.optString("role")=="worker"}
+ Column(Modifier.fillMaxWidth().heightIn(max=690.dp).background(Color(0xFF260811),RoundedCornerShape(24.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+  Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
+   Column{Text("GOOD "+if(java.time.LocalTime.now().hour<12)"MORNING" else if(java.time.LocalTime.now().hour<17)"AFTERNOON" else "EVENING",color=Color(0xFFFFB5C8),style=MaterialTheme.typography.labelSmall);Text(session.name,color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);Text("OWNER • MK ELECTRICALS",color=Color(0xFFE8C8D1),style=MaterialTheme.typography.labelSmall)}
+   TextButton(onClick=onSignOut){Text("SIGN OUT",color=Color.White)}
   }
-  HorizontalDivider()
-  Text("SITE DIRECTORY",color=Deep,fontWeight=FontWeight.Bold)
-  if(sites.isEmpty()) Text("No sites created yet.",color=Wine)
-  sites.forEach{place->
-   Text("${place.optString("name","Site")} • ${if(place.optBoolean("is_active"))"Active" else "Inactive"}\n${place.optString("address","Address not added")} • ${place.optInt("geofence_radius_m",150)} m geofence",color=Deep,style=MaterialTheme.typography.bodySmall)
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){OwnerMetric("STAFF",workers.size.toString(),Modifier.weight(1f));OwnerMetric("SITES",sites.size.toString(),Modifier.weight(1f));OwnerMetric("LIVE",locations.size.toString(),Modifier.weight(1f))}
+  when(page){
+   "Home"->{
+    Text("Operations",color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+    OwnerNavGrid{page=it}
+    OwnerPanel("LIVE TEAM",locations.size.toString()+" location updates"){
+     if(locations.isEmpty())Text("No recent live GPS updates.",color=Deep)
+     locations.take(8).forEach{v->val p=v.optJSONObject("profiles");val s=v.optJSONObject("sites");Text((p?.optString("full_name")?:"Employee")+" • "+(s?.optString("name")?:"Site"),color=Deep,fontWeight=FontWeight.SemiBold);Text(v.optDouble("latitude").toString()+" , "+v.optDouble("longitude").toString()+"  ±"+v.optInt("accuracy_m")+" m",color=Wine,style=MaterialTheme.typography.bodySmall)}
+    }
+    OwnerPanel("RECENT ATTENDANCE","Latest shift activity"){
+     if(attendance.isEmpty())Text("No attendance records yet.",color=Deep)
+     attendance.take(8).forEach{v->val p=v.optJSONObject("profiles");val s=v.optJSONObject("sites");val out=v.optString("clock_out");Text((p?.optString("full_name")?:"Employee")+" • "+(s?.optString("name")?:"Site"),color=Deep,fontWeight=FontWeight.SemiBold);Text(v.optString("clock_in").replace("T"," ").take(16)+" → "+if(out=="null"||out.isBlank())"On duty" else out.replace("T"," ").take(16),color=Wine,style=MaterialTheme.typography.bodySmall)}
+    }
+   }
+   "Sites"->{
+    OwnerPageTitle("Sites","Work locations and geofence settings")
+    sites.forEach{v->OwnerPanel(v.optString("name"),v.optString("address")+" • "+v.optInt("geofence_radius_m",150)+" m radius"){Text(if(v.optBoolean("is_active"))"ACTIVE" else "INACTIVE",color=Wine)}}
+    OwnerPanel("ADD SITE","Create a geofenced work location"){
+     OutlinedTextField(siteName,{siteName=it},label={Text("Site name")},modifier=Modifier.fillMaxWidth())
+     OutlinedTextField(address,{address=it},label={Text("Address")},modifier=Modifier.fillMaxWidth())
+     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(lat,{lat=it},label={Text("Latitude")},modifier=Modifier.weight(1f));OutlinedTextField(lng,{lng=it},label={Text("Longitude")},modifier=Modifier.weight(1f))}
+     OutlinedTextField(radius,{radius=it},label={Text("Geofence metres")},modifier=Modifier.fillMaxWidth())
+     Button(enabled=!busy&&siteName.isNotBlank()&&lat.toDoubleOrNull()!=null&&lng.toDoubleOrNull()!=null&&(radius.toIntOrNull()?:0) in 20..2000,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createSite(session.accessToken,siteName,address,lat.toDouble(),lng.toDouble(),radius.toInt())};siteName="";address="";status="Site created";refresh()}catch(e:Exception){status=e.message?:"Site creation failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("CREATE SITE")}
+    }
+   }
+   "Dispatch"->{
+    OwnerPageTitle("Dispatch","Assign work and manage material movement")
+    OwnerPanel("EMPLOYEE","Select the team member"){
+     var expanded by remember{mutableStateOf(false)}
+     ExposedDropdownMenuBox(expanded=expanded,onExpandedChange={expanded=it}){OutlinedTextField(workers.firstOrNull{it.optString("id")==worker}?.optString("full_name")?:"Choose employee",{},readOnly=true,label={Text("Employee")},modifier=Modifier.menuAnchor().fillMaxWidth());ExposedDropdownMenu(expanded=expanded,onDismissRequest={expanded=false}){workers.filter{it.optBoolean("is_active")}.forEach{p->DropdownMenuItem(text={Text(p.optString("full_name"))},onClick={worker=p.optString("id");expanded=false})}}}
+     var siteExpanded by remember{mutableStateOf(false)}
+     ExposedDropdownMenuBox(expanded=siteExpanded,onExpandedChange={siteExpanded=it}){OutlinedTextField(sites.firstOrNull{it.optString("id")==site}?.optString("name")?:"Choose site",{},readOnly=true,label={Text("Site")},modifier=Modifier.menuAnchor().fillMaxWidth());ExposedDropdownMenu(expanded=siteExpanded,onDismissRequest={siteExpanded=false}){sites.forEach{p->DropdownMenuItem(text={Text(p.optString("name"))},onClick={site=p.optString("id");siteExpanded=false})}}}
+    }
+    OwnerPanel("DAILY TASK","Send instructions to the selected employee"){
+     OutlinedTextField(taskTitle,{taskTitle=it},label={Text("Task title")},modifier=Modifier.fillMaxWidth())
+     OutlinedTextField(taskDetails,{taskDetails=it},label={Text("Instructions")},modifier=Modifier.fillMaxWidth())
+     Button(enabled=!busy&&worker.isNotBlank()&&taskTitle.isNotBlank(),onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createTask(session.accessToken,worker,site.ifBlank{null},taskTitle,taskDetails)};taskTitle="";taskDetails="";status="Task assigned"}catch(e:Exception){status=e.message?:"Task assignment failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("ASSIGN TASK")}
+    }
+    OwnerPanel("MATERIAL ISSUE / RETURN","Record issued and returned stock"){
+     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(selected=action=="issued",onClick={action="issued"},label={Text("Issue")});FilterChip(selected=action=="returned",onClick={action="returned"},label={Text("Return")})}
+     OutlinedTextField(material,{material=it},label={Text("Material name")},modifier=Modifier.fillMaxWidth())
+     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(quantity,{quantity=it},label={Text("Quantity")},modifier=Modifier.weight(1f));OutlinedTextField(unit,{unit=it},label={Text("Unit")},modifier=Modifier.weight(1f))}
+     Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"",action)};material="";quantity="";status="Material transaction saved"}catch(e:Exception){status=e.message?:"Material transaction failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text(if(action=="issued")"RECORD ISSUE" else "RECORD RETURN")}
+    }
+   }
+   "Staff"->{
+    OwnerPageTitle("Staff","Employee directory and status")
+    if(workers.isEmpty())Text("No employees found.",color=Color.White)
+    workers.forEach{p->OwnerPanel(p.optString("full_name"),p.optString("employee_code")+" • "+p.optString("designation")){Text(if(p.optBoolean("is_active"))"ACTIVE" else "INACTIVE",color=Wine)}}
+   }
+   "BOQ & Tools"->{
+    OwnerPageTitle("BOQ / Tool Custody","Room surveys, ID verification and equipment")
+    OwnerFieldTools(session,org.json.JSONArray().apply{employees.forEach{put(it)}},org.json.JSONArray().apply{sites.forEach{put(it)}})
+   }
+   "Reports"->{
+    OwnerPageTitle("Reports & Insights","Attendance and field activity")
+    attendance.forEach{v->val p=v.optJSONObject("profiles");val s=v.optJSONObject("sites");OwnerPanel(p?.optString("full_name")?:"Employee",s?.optString("name")?:"Site"){Text(v.optString("clock_in").replace("T"," ").take(16)+" → "+v.optString("clock_out").replace("T"," ").take(16),color=Deep)}}
+   }
   }
-  OutlinedButton(onClick={refresh()},enabled=!busy,modifier=Modifier.fillMaxWidth()){Text("Refresh dashboard")}
-  Text("LIVE EMPLOYEE LOCATIONS",color=Deep,fontWeight=FontWeight.Bold)
-  if(locations.isEmpty())Text("No live employee locations yet.",color=Wine)
-  locations.forEach{item->
-   val person=item.optJSONObject("profiles");val place=item.optJSONObject("sites")
-   Text("${person?.optString("full_name")?:"Employee"} • ${place?.optString("name")?:"Site"}\n${item.optDouble("latitude")}, ${item.optDouble("longitude")} • ±${item.optInt("accuracy_m")} m",color=Deep,style=MaterialTheme.typography.bodySmall)
-  }
-  HorizontalDivider()
-  Text("RECENT ATTENDANCE",color=Deep,fontWeight=FontWeight.Bold)
-  if(attendance.isEmpty())Text("No attendance records found.",color=Wine)
-  attendance.forEach{row->
-   val person=row.optJSONObject("profiles");val place=row.optJSONObject("sites")
-   val started=row.optString("clock_in").replace("T"," ").take(16)
-   val rawEnd=row.optString("clock_out")
-   val ended=if(rawEnd=="null"||rawEnd.isBlank())"Still clocked in" else rawEnd.replace("T"," ").take(16)
-   val duration=runCatching{val start=java.time.Instant.parse(row.optString("clock_in"));val finish=if(rawEnd=="null"||rawEnd.isBlank())java.time.Instant.now() else java.time.Instant.parse(rawEnd);val minutes=java.time.Duration.between(start,finish).toMinutes().coerceAtLeast(0);"${minutes/60}h ${minutes%60}m"}.getOrDefault("—")
-   Text("${person?.optString("full_name")?:"Employee"} • ${place?.optString("name")?:"Site"}\n$started → $ended • $duration",color=Deep,style=MaterialTheme.typography.bodySmall)
-  }
-  HorizontalDivider()
-  Text("CREATE SITE",color=Deep,fontWeight=FontWeight.Bold)
-  OutlinedTextField(name,{name=it},label={Text("Site name")},singleLine=true,modifier=Modifier.fillMaxWidth())
-  OutlinedTextField(address,{address=it},label={Text("Address")},modifier=Modifier.fillMaxWidth())
-  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-   OutlinedTextField(lat,{lat=it},label={Text("Latitude")},modifier=Modifier.weight(1f))
-   OutlinedTextField(lng,{lng=it},label={Text("Longitude")},modifier=Modifier.weight(1f))
-  }
-  OutlinedTextField(radius,{radius=it},label={Text("Geofence radius in metres")},singleLine=true,modifier=Modifier.fillMaxWidth())
-  Button(enabled=!busy&&name.isNotBlank()&&lat.toDoubleOrNull()!=null&&lng.toDoubleOrNull()!=null&&(radius.toIntOrNull()?:0) in 20..2000,onClick={
-   scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createSite(session.accessToken,name,address,lat.toDouble(),lng.toDouble(),radius.toInt())};name="";address="";status="Site created";refresh()}catch(e:Exception){status=e.message?:"Site creation failed"}finally{busy=false}}
-  },modifier=Modifier.fillMaxWidth()){Text("Create site")}
-  HorizontalDivider()
-  Text("ASSIGN EMPLOYEE TO SITE",color=Deep,fontWeight=FontWeight.Bold)
-  var workerOpen by remember{mutableStateOf(false)}
-  ExposedDropdownMenuBox(expanded=workerOpen,onExpandedChange={workerOpen=it}){
-   OutlinedTextField(employees.firstOrNull{it.optString("id")==worker}?.optString("full_name")?:"Choose employee",{},readOnly=true,label={Text("Employee")},modifier=Modifier.menuAnchor().fillMaxWidth())
-   ExposedDropdownMenu(expanded=workerOpen,onDismissRequest={workerOpen=false}){employees.filter{it.optString("role")=="worker"&&it.optBoolean("is_active")}.forEach{p->DropdownMenuItem(text={Text(p.optString("full_name"))},onClick={worker=p.optString("id");workerOpen=false})}}
-  }
-  var siteOpen by remember{mutableStateOf(false)}
-  ExposedDropdownMenuBox(expanded=siteOpen,onExpandedChange={siteOpen=it}){
-   OutlinedTextField(sites.firstOrNull{it.optString("id")==site}?.optString("name")?:"Choose site",{},readOnly=true,label={Text("Site")},modifier=Modifier.menuAnchor().fillMaxWidth())
-   ExposedDropdownMenu(expanded=siteOpen,onDismissRequest={siteOpen=false}){sites.forEach{p->DropdownMenuItem(text={Text(p.optString("name"))},onClick={site=p.optString("id");siteOpen=false})}}
-  }
-  Button(enabled=!busy&&worker.isNotBlank()&&site.isNotBlank(),onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.assignWorker(session.accessToken,worker,site)};status="Employee assigned"}catch(e:Exception){status=e.message?:"Assignment failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Assign employee")}
-  HorizontalDivider()
-  Text("ASSIGN DAILY TASK",color=Deep,fontWeight=FontWeight.Bold)
-  OutlinedTextField(task,{task=it},label={Text("Task title")},modifier=Modifier.fillMaxWidth())
-  OutlinedTextField(details,{details=it},label={Text("Task details")},modifier=Modifier.fillMaxWidth())
-  Button(enabled=!busy&&worker.isNotBlank()&&task.isNotBlank(),onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createTask(session.accessToken,worker,site.ifBlank{null},task,details)};task="";details="";status="Task assigned"}catch(e:Exception){status=e.message?:"Task assignment failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Assign task to selected employee")}
-  HorizontalDivider()
-  Text("MATERIAL ISSUE / RETURN",color=Deep,fontWeight=FontWeight.Bold)
-  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-   FilterChip(selected=materialAction=="issued",onClick={materialAction="issued"},label={Text("Issue")})
-   FilterChip(selected=materialAction=="returned",onClick={materialAction="returned"},label={Text("Return")})
-  }
-  OutlinedTextField(material,{material=it},label={Text("Material name")},modifier=Modifier.fillMaxWidth())
-  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-   OutlinedTextField(quantity,{quantity=it},label={Text("Quantity")},modifier=Modifier.weight(1f))
-   OutlinedTextField(unit,{unit=it},label={Text("Unit")},modifier=Modifier.weight(1f))
-  }
-  Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"",materialAction)};material="";quantity="";status=if(materialAction=="issued")"Material issue recorded" else "Material return recorded"}catch(e:Exception){status=e.message?:"Material transaction failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text(if(materialAction=="issued") "Record material issue" else "Record material return")}
-  OwnerFieldTools(session, org.json.JSONArray().apply { employees.forEach { put(it) } }, org.json.JSONArray().apply { sites.forEach { put(it) } })
-  Text(status,color=Wine,style=MaterialTheme.typography.bodySmall)
+  Text(status,color=Color(0xFFFFC2D0),style=MaterialTheme.typography.bodySmall)
+  Row(Modifier.fillMaxWidth().background(Color(0xFF4A1022),RoundedCornerShape(18.dp)).padding(4.dp),horizontalArrangement=Arrangement.SpaceBetween){listOf("Home","Sites","Dispatch","Staff","BOQ & Tools","Reports").forEach{tab->TextButton(onClick={page=tab},modifier=Modifier.weight(1f)){Text(when(tab){"BOQ & Tools"->"BOQ";else->tab},color=if(page==tab)Color(0xFFFFB5C8)else Color.White,style=MaterialTheme.typography.labelSmall,maxLines=1)}}}
  }
 }
-
+@Composable private fun OwnerMetric(label:String,value:String,modifier:Modifier=Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=Color(0xFFFDF9F6)),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(10.dp)){Text(value,color=Deep,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold);Text(label,color=Wine,style=MaterialTheme.typography.labelSmall)}}}
+@Composable private fun OwnerPageTitle(title:String,subtitle:String){Text(title,color=Color.White,style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(subtitle,color=Color(0xFFE8C8D1),style=MaterialTheme.typography.bodySmall)}
+@Composable private fun OwnerPanel(title:String,subtitle:String,content:@Composable ColumnScope.()->Unit){Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=Color(0xFFFDF9F6))){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(title,color=Deep,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleSmall);Text(subtitle,color=Wine,style=MaterialTheme.typography.bodySmall);content()}}}
+@Composable private fun OwnerNavGrid(onPage:(String)->Unit){
+ val items=listOf("Live Tracking" to "⌖","Sites" to "▦","Dispatch" to "⇧","Staff" to "♙","BOQ & Tools" to "▤","Reports" to "▥")
+ Column(verticalArrangement=Arrangement.spacedBy(8.dp)){items.chunked(2).forEach{row->Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){row.forEach{item->Card(Modifier.weight(1f).clickable{onPage(if(item.first=="Live Tracking")"Home" else item.first)},shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Color(0xFFFDF9F6))){Column(Modifier.fillMaxWidth().padding(vertical=14.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(item.second,color=Wine,style=MaterialTheme.typography.headlineMedium);Text(item.first,color=Deep,fontWeight=FontWeight.SemiBold)}}}}}}
+}
 @Composable
 private fun MkBrandLogo(){
  Column(horizontalAlignment=Alignment.CenterHorizontally){
