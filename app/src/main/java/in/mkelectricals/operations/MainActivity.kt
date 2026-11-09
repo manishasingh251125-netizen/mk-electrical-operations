@@ -229,7 +229,7 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
    OutlinedTextField(quantity,{quantity=it},label={Text("Quantity")},modifier=Modifier.weight(1f))
    OutlinedTextField(unit,{unit=it},label={Text("Unit")},modifier=Modifier.weight(1f))
   }
-  Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"",materialAction)};material="";quantity="";status=if(materialAction=="issued")"Material issue recorded" else "Material return recorded"}catch(e:Exception){status=e.message?:"Material issue failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("Record material issue")}
+  Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"",materialAction)};material="";quantity="";status=if(materialAction=="issued")"Material issue recorded" else "Material return recorded"}catch(e:Exception){status=e.message?:"Material transaction failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text(if(materialAction=="issued") "Record material issue" else "Record material return")}
   OwnerFieldTools(session, org.json.JSONArray().apply { employees.forEach { put(it) } }, org.json.JSONArray().apply { sites.forEach { put(it) } })
   Text(status,color=Wine,style=MaterialTheme.typography.bodySmall)
  }
