@@ -86,12 +86,8 @@ private fun OperationsApp(){
   if(showBackgroundPrompt){AlertDialog(onDismissRequest={showBackgroundPrompt=false},title={Text("Allow background location")},text={Text("To keep attendance GPS active when the screen is locked, set MK Electricals location access to Allow all the time in App permissions.")},confirmButton={TextButton(onClick={showBackgroundPrompt=false;context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Open app settings")}},dismissButton={TextButton(onClick={showBackgroundPrompt=false}){Text("Not now")}})}
   Column(Modifier.fillMaxSize().padding(horizontal=24.dp, vertical=22.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
    Spacer(Modifier.weight(0.45f))
-   Box(Modifier.size(112.dp).shadow(22.dp,RoundedCornerShape(28.dp)).background(Brush.linearGradient(listOf(Gold,Wine,Color(0xFF9C5268))),RoundedCornerShape(28.dp)),contentAlignment=Alignment.Center){
-    Text("M",color=Color.White,style=MaterialTheme.typography.displayLarge,fontWeight=FontWeight.Black)
-   }
-   Spacer(Modifier.height(10.dp))
-   Text("MK",color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black)
-   Text("E L E C T R I C A L S",color=Color(0xFFE8D5D9),style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.Bold)
+   MkBrandLogo()
+
    Spacer(Modifier.height(44.dp))
    if(session==null){
     Column(Modifier.fillMaxWidth().background(Color(0xFF21070F).copy(alpha=0.62f),RoundedCornerShape(28.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
@@ -233,5 +229,17 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
   Button(enabled=!busy&&worker.isNotBlank()&&material.isNotBlank()&&(quantity.toDoubleOrNull()?:0.0)>0,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.issueMaterial(session.accessToken,worker,site.ifBlank{null},material,quantity.toDouble(),unit,"",materialAction)};material="";quantity="";status=if(materialAction=="issued")"Material issue recorded" else "Material return recorded"}catch(e:Exception){status=e.message?:"Material transaction failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text(if(materialAction=="issued") "Record material issue" else "Record material return")}
   OwnerFieldTools(session, org.json.JSONArray().apply { employees.forEach { put(it) } }, org.json.JSONArray().apply { sites.forEach { put(it) } })
   Text(status,color=Wine,style=MaterialTheme.typography.bodySmall)
+ }
+}
+
+@Composable
+private fun MkBrandLogo(){
+ Column(horizontalAlignment=Alignment.CenterHorizontally){
+  Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){
+   Text("M",color=Color.White,style=MaterialTheme.typography.displayLarge,fontWeight=FontWeight.Black)
+   Box(Modifier.width(8.dp).height(62.dp).padding(horizontal=1.dp),contentAlignment=Alignment.Center){Text("ϟ",color=Color(0xFFFFB5C8),style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Black)}
+   Text("K",color=Color.White,style=MaterialTheme.typography.displayLarge,fontWeight=FontWeight.Black)
+  }
+  Text("E L E C T R I C A L S",color=Color(0xFFE8D5D9),style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.Bold)
  }
 }
