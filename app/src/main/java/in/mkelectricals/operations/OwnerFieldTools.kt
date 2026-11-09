@@ -56,7 +56,7 @@ fun OwnerFieldTools(session: ApiClient.Session, employees: JSONArray, sites: JSO
     }
     LaunchedEffect(session.userId, siteId) { refresh() }
 
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Text("EMPLOYEE ID VERIFICATION", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
         Text("Enter the verification code shown on an employee’s digital staff ID.", style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(verificationCode, { verificationCode = it.trim(); verificationChecked = false; verificationResult = null }, label = { Text("Employee verification code") }, singleLine = true, modifier = Modifier.fillMaxWidth())
