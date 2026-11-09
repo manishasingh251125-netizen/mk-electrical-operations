@@ -103,4 +103,49 @@ object ApiClient {
             .put("latitude",lat).put("longitude",lng).put("accuracy_m",accuracy).put("recorded_at",java.time.Instant.now().toString()).put("updated_at",java.time.Instant.now().toString())
         request("/rest/v1/worker_live_locations?on_conflict=worker_id",token,"POST",body.toString(),"resolution=merge-duplicates,return=minimal")
     }
+
+    fun workerDailyTasks(token:String,uid:String):JSONArray =
+        JSONArray(request("/rest/v1/daily_tasks?select=id,site_id,work_date,title,description,status,hours,sites(name)&worker_id=eq.$uid&order=work_date.desc,created_at.desc",token))
+
+    fun updateTaskStatus(token:String,taskId:String,status:String) {
+        require(status in setOf("planned","in_progress","completed","blocked")) { "Invalid task status" }
+        request("/rest/v1/daily_tasks?id=eq.$taskId",token,"PATCH",JSONObject().put("status",status).toString(),"return=minimal")
+    }
+
+    fun workerMaterials(token:String,uid:String):JSONArray =
+        JSONArray(request("/rest/v1/material_transactions?select=id,site_id,material_name,quantity,unit,transaction_type,transaction_date,notes,sites(name)&worker_id=eq.$uid&order=transaction_date.desc",token))
+
+    fun ownerRoomSurvey(token:String,siteId:String?=null):JSONArray {
+        val filter=if(siteId.isNullOrBlank()) "" else "&site_id=eq.$siteId"
+        return JSONArray(request("/rest/v1/room_survey_entries?select=id,site_id,room_name,item_description,quantity,unit,notes,created_by,created_at,sites(name),profiles!room_survey_entries_created_by_fkey(full_name)&order=created_at.desc$filter",token))
+    }
+
+    fun createRoomSurvey(token:String,uid:String,siteId:String,room:String,item:String,quantity:Double,unit:String,notes:String) {
+        require(quantity>0.0 && room.isNotBlank() && item.isNotBlank())
+        val body=JSONObject().put("site_id",siteId).put("room_name",room.trim()).put("item_description",item.trim())
+            .put("quantity",quantity).put("unit",unit.trim().ifBlank { "Nos" }).put("created_by",uid)
+        if(notes.isNotBlank()) body.put("notes",notes.trim())
+        request("/rest/v1/room_survey_entries",token,"POST",body.toString(),"return=minimal")
+    }
+
+    fun ownerToolCustody(token:String):JSONArray =
+        JSONArray(request("/rest/v1/tool_custody?select=id,tool_name,serial_number,assigned_to,site_id,issued_at,returned_at,condition_out,condition_in,notes,profiles!tool_custody_assigned_to_fkey(full_name,employee_code),sites(name)&order=issued_at.desc",token))
+
+    fun issueTool(token:String,uid:String,workerId:String,siteId:String?,toolName:String,serial:String,condition:String,notes:String) {
+        require(workerId.isNotBlank() && toolName.isNotBlank())
+        val body=JSONObject().put("created_by",uid).put("assigned_to",workerId).put("tool_name",toolName.trim())
+        if(siteId!=null) body.put("site_id",siteId)
+        if(serial.isNotBlank()) body.put("serial_number",serial.trim())
+        if(condition.isNotBlank()) body.put("condition_out",condition.trim())
+        if(notes.isNotBlank()) body.put("notes",notes.trim())
+        request("/rest/v1/tool_custody",token,"POST",body.toString(),"return=minimal")
+    }
+
+    fun returnTool(token:String,id:String,condition:String,notes:String) {
+        val body=JSONObject().put("returned_at",java.time.Instant.now().toString())
+        if(condition.isNotBlank()) body.put("condition_in",condition.trim())
+        if(notes.isNotBlank()) body.put("notes",notes.trim())
+        request("/rest/v1/tool_custody?id=eq.$id&returned_at=is.null",token,"PATCH",body.toString(),"return=minimal")
+    }
+
 }
