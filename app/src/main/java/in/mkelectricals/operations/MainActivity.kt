@@ -138,12 +138,23 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
  fun refresh(){scope.launch{busy=true;try{val r=withContext(Dispatchers.IO){listOf(ApiClient.ownerEmployees(session.accessToken),ApiClient.ownerSites(session.accessToken),ApiClient.ownerLiveLocations(session.accessToken),ApiClient.ownerRecentAttendance(session.accessToken))};employees=(0 until r[0].length()).map{r[0].getJSONObject(it)};sites=(0 until r[1].length()).map{r[1].getJSONObject(it)};locations=(0 until r[2].length()).map{r[2].getJSONObject(it)};attendance=(0 until r[3].length()).map{r[3].getJSONObject(it)};if(worker.isBlank())worker=employees.firstOrNull{it.optString("role")=="worker"}?.optString("id").orEmpty();if(site.isBlank())site=sites.firstOrNull()?.optString("id").orEmpty();status="Updated just now"}catch(e:Exception){status=e.message?:"Could not load company data"}finally{busy=false}}}
  LaunchedEffect(session.userId){refresh();while(true){delay(30000L);refresh()}}
  val workers=employees.filter{it.optString("role")=="worker"}
- Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(Color(0xFF17070D)).padding(horizontal=18.dp, vertical=18.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+ Column(Modifier.fillMaxSize().background(Color(0xFF17070D)).padding(horizontal=16.dp, vertical=12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
-   Column{Text("GOOD "+if(java.time.LocalTime.now().hour<12)"MORNING" else if(java.time.LocalTime.now().hour<17)"AFTERNOON" else "EVENING",color=Color(0xFFFFB5C8),style=MaterialTheme.typography.labelSmall);Text(session.name,color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);Text("OWNER • MK ELECTRICALS",color=Color(0xFFE8C8D1),style=MaterialTheme.typography.labelSmall)}
-   TextButton(onClick=onSignOut){Text("SIGN OUT",color=Color.White)}
+   Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
+    Box(Modifier.size(48.dp).background(Brush.linearGradient(listOf(Color(0xFFD83A68),Color(0xFF741A37))),RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center){Text("MK",color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Black)}
+    Column(verticalArrangement=Arrangement.spacedBy(1.dp)){Text("MK ELECTRICALS",color=Color(0xFFFFB5C8),style=MaterialTheme.typography.labelSmall,fontWeight=FontWeight.ExtraBold);Text("Operations centre",color=Color.White,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)}
+   }
+   TextButton(onClick=onSignOut){Text("SIGN OUT",color=Color(0xFFFFB5C8),fontWeight=FontWeight.Bold)}
+  }
+  Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=Color(0xFF741A37))){
+   Column(Modifier.background(Brush.linearGradient(listOf(Color(0xFF9E204B),Color(0xFF3A0D20)))).padding(17.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+    Text("FIELD OPERATIONS  /  OWNER",color=Color(0xFFFFD7E0),style=MaterialTheme.typography.labelSmall,fontWeight=FontWeight.Bold)
+    Text("Welcome back, ${session.name}",color=Color.White,style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.ExtraBold)
+    Text("Your teams, sites and daily work — in one place.",color=Color(0xFFF5DDE4),style=MaterialTheme.typography.bodySmall)
+   }
   }
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){OwnerMetric("TEAM",workers.size.toString(),Modifier.weight(1f));OwnerMetric("SITES",sites.size.toString(),Modifier.weight(1f));OwnerMetric("LIVE NOW",locations.size.toString(),Modifier.weight(1f))}
+  Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
   when(page){
    "Home"->{
     Text("Operations",color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
@@ -203,12 +214,21 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
    }
   }
   Text(status,color=Color(0xFFFFC2D0),style=MaterialTheme.typography.bodySmall)
-  Row(Modifier.fillMaxWidth().background(Color(0xFF4A1022),RoundedCornerShape(18.dp)).padding(4.dp),horizontalArrangement=Arrangement.SpaceBetween){listOf("Home","Sites","Dispatch","Staff","BOQ & Tools","Reports").forEach{tab->TextButton(onClick={page=tab},modifier=Modifier.weight(1f)){Text(when(tab){"BOQ & Tools"->"BOQ";else->tab},color=if(page==tab)Color(0xFFFFB5C8)else Color.White,style=MaterialTheme.typography.labelSmall,maxLines=1)}}}
+  }
+  Row(Modifier.fillMaxWidth().background(Color(0xFF2A0D19),RoundedCornerShape(20.dp)).padding(horizontal=3.dp,vertical=5.dp),horizontalArrangement=Arrangement.SpaceEvenly,verticalAlignment=Alignment.CenterVertically){
+   listOf(Triple("Home","⌂","Home"),Triple("Sites","▦","Sites"),Triple("Dispatch","⇧","Dispatch"),Triple("Staff","♙","Staff"),Triple("BOQ & Tools","▤","Tools"),Triple("Reports","▥","Reports")).forEach{item->
+    val active=page==item.first
+    Column(Modifier.weight(1f).clickable{page=item.first}.background(if(active)Color(0xFF741A37)else Color.Transparent,RoundedCornerShape(14.dp)).padding(vertical=7.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp)){
+     Text(item.second,color=if(active)Color.White else Color(0xFFC9AAB4),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+     Text(item.third,color=if(active)Color.White else Color(0xFFC9AAB4),style=MaterialTheme.typography.labelSmall,maxLines=1)
+    }
+   }
+  }
  }
 }
 @Composable private fun OwnerMetric(label:String,value:String,modifier:Modifier=Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=Color(0xFF2B111B)),shape=RoundedCornerShape(18.dp)){Column(Modifier.fillMaxWidth().padding(horizontal=13.dp,vertical=14.dp),verticalArrangement=Arrangement.spacedBy(3.dp)){Text(value,color=Color.White,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold);Text(label,color=Color(0xFFFFB5C8),style=MaterialTheme.typography.labelSmall,fontWeight=FontWeight.Bold)}}}
 @Composable private fun OwnerPageTitle(title:String,subtitle:String){Text(title,color=Color.White,style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(subtitle,color=Color(0xFFE8C8D1),style=MaterialTheme.typography.bodySmall)}
-@Composable private fun OwnerPanel(title:String,subtitle:String,content:@Composable ColumnScope.()->Unit){Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=Color(0xFFFDF9F6))){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(title,color=Deep,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleSmall);Text(subtitle,color=Wine,style=MaterialTheme.typography.bodySmall);content()}}}
+@Composable private fun OwnerPanel(title:String,subtitle:String,content:@Composable ColumnScope.()->Unit){Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=Color(0xFFF8F1F0))){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){Text(title,color=Deep,fontWeight=FontWeight.ExtraBold,style=MaterialTheme.typography.titleSmall);Text(subtitle,color=Color(0xFF805363),style=MaterialTheme.typography.bodySmall);HorizontalDivider(color=Color(0xFFE9D9DE));content()}}}
 @Composable private fun OwnerNavGrid(onPage:(String)->Unit){
  val items=listOf("Live Tracking" to "⌖","Sites" to "▦","Dispatch" to "⇧","Staff" to "♙","BOQ & Tools" to "▤","Reports" to "▥")
  Column(verticalArrangement=Arrangement.spacedBy(8.dp)){items.chunked(2).forEach{row->Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){row.forEach{item->Card(Modifier.weight(1f).clickable{onPage(if(item.first=="Live Tracking")"Home" else item.first)},shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Color(0xFFFDF9F6))){Column(Modifier.fillMaxWidth().padding(vertical=14.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(item.second,color=Wine,style=MaterialTheme.typography.headlineMedium);Text(item.first,color=Deep,fontWeight=FontWeight.SemiBold)}}}}}}
