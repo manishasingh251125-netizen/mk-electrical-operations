@@ -235,12 +235,17 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
 }
 @Composable
 private fun MkBrandLogo(){
- Column(horizontalAlignment=Alignment.CenterHorizontally){
-  Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){
-   Text("M",color=Color.White,style=MaterialTheme.typography.displayLarge,fontWeight=FontWeight.Black)
-   Box(Modifier.width(8.dp).height(62.dp).padding(horizontal=1.dp),contentAlignment=Alignment.Center){Text("ϟ",color=Color(0xFFFFB5C8),style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Black)}
-   Text("K",color=Color.White,style=MaterialTheme.typography.displayLarge,fontWeight=FontWeight.Black)
+ Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(10.dp)){
+  Box(Modifier.size(94.dp).background(Brush.linearGradient(listOf(Color(0xFFFF4D83),Color(0xFF8E123A),Color(0xFF3A0D20))),RoundedCornerShape(28.dp)).shadow(16.dp,RoundedCornerShape(28.dp)),contentAlignment=Alignment.Center){
+   Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){
+    Text("M",color=Color.White,style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Black)
+    Text("K",color=Color(0xFFFFD5E0),style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Black)
+   }
+   Text("ϟ",color=Color(0xFFFFC46B),style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Black,modifier=Modifier.offset(x=1.dp,y=1.dp))
   }
-  Text("E L E C T R I C A L S",color=Color(0xFFE8D5D9),style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.Bold)
+  Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(2.dp)){
+   Text("MK ELECTRICALS",color=Color.White,style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.ExtraBold)
+   Text("POWERING EVERY CONNECTION",color=Color(0xFFFFC2D0),style=MaterialTheme.typography.labelSmall,fontWeight=FontWeight.Bold)
+  }
  }
 }
