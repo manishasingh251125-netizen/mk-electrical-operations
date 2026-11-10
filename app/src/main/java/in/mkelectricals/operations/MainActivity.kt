@@ -131,7 +131,7 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
  var locations by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
  var attendance by remember{mutableStateOf(emptyList<org.json.JSONObject>())}
  var worker by remember{mutableStateOf("")};var site by remember{mutableStateOf("")}
- var siteName by remember{mutableStateOf("")};var address by remember{mutableStateOf("")};var lat by remember{mutableStateOf("")};var lng by remember{mutableStateOf("")};var radius by remember{mutableStateOf("150")}
+ var siteName by remember{mutableStateOf("")};var address by remember{mutableStateOf("")};var lat by remember{mutableStateOf("")};var lng by remember{mutableStateOf("")};var radius by remember{mutableStateOf("150")};var editingSiteId by remember{mutableStateOf<String?>(null)}
  var taskTitle by remember{mutableStateOf("")};var taskDetails by remember{mutableStateOf("")}
  var material by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var unit by remember{mutableStateOf("pcs")};var action by remember{mutableStateOf("issued")}
  var page by remember{mutableStateOf("Home")};var status by remember{mutableStateOf("Loading company data…")};var busy by remember{mutableStateOf(false)}
@@ -170,13 +170,14 @@ private fun OwnerDashboard(session:ApiClient.Session,onSignOut:()->Unit){
    }
    "Sites"->{
     OwnerPageTitle("Sites","Work locations and geofence settings")
-    sites.forEach{v->OwnerPanel(v.optString("name"),v.optString("address")+" • "+v.optInt("geofence_radius_m",150)+" m radius"){Text(if(v.optBoolean("is_active"))"ACTIVE" else "INACTIVE",color=Wine)}}
-    OwnerPanel("ADD SITE","Create a geofenced work location"){
+    sites.forEach{v->OwnerPanel(v.optString("name"),v.optString("address")+" • "+v.optInt("geofence_radius_m",150)+" m radius"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Text(if(v.optBoolean("is_active"))"ACTIVE" else "INACTIVE",color=Wine,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){TextButton(onClick={editingSiteId=v.optString("id");siteName=v.optString("name");address=v.optString("address");lat=v.optString("latitude");lng=v.optString("longitude");radius=v.optInt("geofence_radius_m",150).toString()}){Text("EDIT")};TextButton(enabled=!busy,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.setSiteActive(session.accessToken,v.optString("id"),!v.optBoolean("is_active"))};status=if(v.optBoolean("is_active"))"Site deactivated" else "Site activated";refresh()}catch(e:Exception){status=e.message?:"Could not update site"}finally{busy=false}}}){Text(if(v.optBoolean("is_active"))"DEACTIVATE" else "ACTIVATE")}}}}}
+    OwnerPanel(if(editingSiteId==null)"ADD SITE" else "EDIT SITE",if(editingSiteId==null)"Create a geofenced work location" else "Update site details and geofence settings"){
      OutlinedTextField(siteName,{siteName=it},label={Text("Site name")},modifier=Modifier.fillMaxWidth())
      OutlinedTextField(address,{address=it},label={Text("Address")},modifier=Modifier.fillMaxWidth())
      Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(lat,{lat=it},label={Text("Latitude")},modifier=Modifier.weight(1f));OutlinedTextField(lng,{lng=it},label={Text("Longitude")},modifier=Modifier.weight(1f))}
      OutlinedTextField(radius,{radius=it},label={Text("Geofence metres")},modifier=Modifier.fillMaxWidth())
-     Button(enabled=!busy&&siteName.isNotBlank()&&lat.toDoubleOrNull()!=null&&lng.toDoubleOrNull()!=null&&(radius.toIntOrNull()?:0) in 20..2000,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){ApiClient.createSite(session.accessToken,siteName,address,lat.toDouble(),lng.toDouble(),radius.toInt())};siteName="";address="";status="Site created";refresh()}catch(e:Exception){status=e.message?:"Site creation failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text("CREATE SITE")}
+     Button(enabled=!busy&&siteName.isNotBlank()&&lat.toDoubleOrNull()!=null&&lng.toDoubleOrNull()!=null&&(radius.toIntOrNull()?:0) in 20..2000,onClick={scope.launch{busy=true;try{withContext(Dispatchers.IO){if(editingSiteId==null)ApiClient.createSite(session.accessToken,siteName,address,lat.toDouble(),lng.toDouble(),radius.toInt())else ApiClient.updateSite(session.accessToken,editingSiteId!!,siteName,address,lat.toDouble(),lng.toDouble(),radius.toInt())};siteName="";address="";lat="";lng="";radius="150";editingSiteId=null;status="Site saved";refresh()}catch(e:Exception){status=e.message?:"Site save failed"}finally{busy=false}}},modifier=Modifier.fillMaxWidth()){Text(if(editingSiteId==null)"CREATE SITE" else "SAVE SITE CHANGES")}
+if(editingSiteId!=null)TextButton(onClick={editingSiteId=null;siteName="";address="";lat="";lng="";radius="150"}){Text("CANCEL EDIT")}
     }
    }
    "Dispatch"->{
