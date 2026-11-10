@@ -84,6 +84,15 @@ object ApiClient {
         if(siteId!=null)body.put("site_id",siteId)
         request("/rest/v1/material_transactions",token,"POST",body.toString(),"return=minimal")
     }
+    fun updateSite(token:String,id:String,name:String,address:String,lat:Double,lng:Double,radius:Int){
+        require(name.isNotBlank() && lat in -90.0..90.0 && lng in -180.0..180.0 && radius in 20..2000)
+        val body=JSONObject().put("name",name.trim()).put("address",address.trim()).put("latitude",lat).put("longitude",lng).put("geofence_radius_m",radius)
+        request("/rest/v1/sites?id=eq.$id",token,"PATCH",body.toString(),"return=minimal")
+    }
+    fun setSiteActive(token:String,id:String,active:Boolean){
+        request("/rest/v1/sites?id=eq.$id",token,"PATCH",JSONObject().put("is_active",active).toString(),"return=minimal")
+    }
+
     fun createSite(token:String,name:String,address:String,lat:Double,lng:Double,radius:Int){
         val body=JSONObject().put("name",name).put("address",address).put("latitude",lat).put("longitude",lng).put("geofence_radius_m",radius).put("is_active",true)
         request("/rest/v1/sites",token,"POST",body.toString(),"return=minimal")
