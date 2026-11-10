@@ -23,6 +23,7 @@ fun WorkerFieldTools(session: ApiClient.Session) {
     var profile by remember { mutableStateOf<org.json.JSONObject?>(null) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Loading your tasks and issued materials…") }
+    var section by remember { mutableStateOf("Tasks") }
     fun refresh() {
         scope.launch {
             busy = true
@@ -47,7 +48,14 @@ fun WorkerFieldTools(session: ApiClient.Session) {
         }
     }
     LaunchedEffect(session.userId) { refresh() }
-    Column(Modifier.fillMaxWidth().heightIn(max = 430.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("YOUR WORKSPACE", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            listOf("Tasks", "Materials", "Tools", "My ID").forEach { item ->
+                FilterChip(selected = section == item, onClick = { section = item }, label = { Text(item, maxLines = 1) })
+            }
+        }
+        if (section == "My ID") {
         Text("MY DIGITAL STAFF ID", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
         profile?.let { p ->
             Card(Modifier.fillMaxWidth()) {
@@ -62,8 +70,8 @@ fun WorkerFieldTools(session: ApiClient.Session) {
                 }
             }
         } ?: Text("Employee ID details are not available yet.", style = MaterialTheme.typography.bodySmall)
-        HorizontalDivider()
-        HorizontalDivider()
+        }
+        if (section == "Tasks") {
         Text("MY DAILY TASKS", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
         if (tasks.isEmpty()) Text("No tasks assigned yet.", style = MaterialTheme.typography.bodySmall)
         tasks.take(20).forEach { task ->
@@ -93,7 +101,8 @@ fun WorkerFieldTools(session: ApiClient.Session) {
                 }
             }
         }
-        HorizontalDivider()
+        }
+        if (section == "Materials") {
         Text("MY ISSUED MATERIALS", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
         if (materials.isEmpty()) Text("No material issues recorded.", style = MaterialTheme.typography.bodySmall)
         materials.take(25).forEach { row ->
@@ -106,7 +115,8 @@ fun WorkerFieldTools(session: ApiClient.Session) {
                 }
             }
         }
-        HorizontalDivider()
+        }
+        if (section == "Tools") {
         Text("MY TOOL CUSTODY", color = Color(0xFF35101F), style = MaterialTheme.typography.titleMedium)
         if (tools.isEmpty()) Text("No tools have been issued to you.", style = MaterialTheme.typography.bodySmall)
         tools.take(25).forEach { tool ->
@@ -125,7 +135,8 @@ fun WorkerFieldTools(session: ApiClient.Session) {
                 }
             }
         }
-        OutlinedButton(onClick = { refresh() }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh tasks, materials & tools") }
+        }
+        OutlinedButton(onClick = { refresh() }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "Refreshing…" else "Refresh records") }
         Text(message, color = Color(0xFF641B32), style = MaterialTheme.typography.bodySmall)
     }
 }
